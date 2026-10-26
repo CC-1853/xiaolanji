@@ -169,7 +169,7 @@
   .book-cover-img .cover-sub{display:block;font-family:var(--font);font-weight:500;font-size:10px;opacity:.92;margin-top:4px;}
   .book-cover-img .count{
     position:absolute;bottom:0;left:0;right:0;padding:16px 10px 8px;font-size:11px;font-weight:700;
-    background:rgba(0,0,0,0.14);color:#fff;text-align:left;
+    background:rgba(0,0,0,0.14);color:#fff;text-align:left;z-index:3;
   }
   .book-cover-card b{display:block;font-size:13px;font-weight:600;margin-top:8px;font-family:var(--font-serif);}
   .book-add{
@@ -185,7 +185,14 @@
 
   .bk-head{display:flex;gap:16px;align-items:center;margin-bottom:18px;}
   .bk-cover{width:92px;height:122px;border-radius:18px;flex-shrink:0;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;text-align:center;color:#fff;font-family:var(--font-serif);font-weight:700;font-size:15px;line-height:1.25;box-shadow:var(--shadow-lg);padding:8px;}
-  .bk-cover .swap{position:absolute;left:0;right:0;bottom:0;padding:5px 0;font-size:10px;font-weight:700;text-align:center;background:rgba(0,0,0,0.26);color:#fff;letter-spacing:2px;cursor:pointer;}
+  .bk-cover .swap{position:absolute;left:0;right:0;bottom:0;padding:5px 0;font-size:10px;font-weight:700;text-align:center;background:rgba(0,0,0,0.26);color:#fff;letter-spacing:2px;cursor:pointer;z-index:3;}
+
+  /* ===== 自定义封面照片 ===== */
+  .cover-photo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;}
+  .cover-scrim{position:absolute;inset:0;z-index:1;background:linear-gradient(180deg,rgba(0,0,0,0) 38%,rgba(0,0,0,0.46) 100%);pointer-events:none;}
+  .cover-inner{position:relative;z-index:2;}
+  .has-photo .cover-inner{color:#fff;text-shadow:0 1px 8px rgba(0,0,0,0.55);}
+  .has-photo .cover-sub{opacity:1;}
   .bk-head .info{min-width:0;flex:1;}
   .bk-head .info h2{font-family:var(--font-serif);font-size:24px;font-weight:700;letter-spacing:-0.5px;line-height:1.2;margin-top:8px;}
   .bk-head .info p{font-size:13px;color:var(--text2);margin-top:6px;line-height:1.55;}
@@ -471,6 +478,8 @@
     <input type="file" id="ed-img-file" accept="image/*" multiple hidden>
   </section>
 
+  <input type="file" id="cover-file" accept="image/*" hidden>
+
   <!-- DETAIL：心事详情 -->
   <section class="screen" id="screen-detail"></section>
 
@@ -558,6 +567,27 @@
             <b>暗色模式</b><span>深紫夜 · 亮紫主色</span>
           </div>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SHEET：换封面 -->
+  <div class="modal" id="cover-sheet" onclick="closeSheet(event,'cover-sheet')">
+    <div class="modal-sheet" onclick="event.stopPropagation()">
+      <div class="modal-handle"></div>
+      <div class="sheet-title">
+        <h3>封面</h3>
+        <button class="icon-btn" onclick="closeSheet(null,'cover-sheet')">✕</button>
+      </div>
+      <div class="plugin-row" style="cursor:pointer;" onclick="pickCover()">
+        <div class="p-ic" style="background:#ECE6F8;color:#A18CD1;">🖼</div>
+        <div class="p-info"><b>从相册选一张</b><span>图片会自适应裁切填满封面</span></div>
+        <span style="color:var(--text2);">›</span>
+      </div>
+      <div class="plugin-row" style="cursor:pointer;" id="cover-remove-row" onclick="removeCover()">
+        <div class="p-ic" style="background:#FFE7EA;color:#FF9A9E;">↺</div>
+        <div class="p-info"><b>恢复默认封面</b><span>改用这一册的主题渐变色</span></div>
+        <span style="color:var(--text2);">›</span>
       </div>
     </div>
   </div>
@@ -756,7 +786,9 @@ const BOOK_THEMES = {
 function themeOf(b){ return BOOK_THEMES[b && b.theme] || BOOK_THEMES.warm; }
 function coverHtml(book){
   const t = esc(book.title || "未命名"), s = esc(book.subtitle || "");
-  return `<div class="cover-inner">${t}${s ? `<div class="cover-sub">${s}</div>` : ""}</div>`;
+  const inner = `<div class="cover-inner">${t}${s ? `<div class="cover-sub">${s}</div>` : ""}</div>`;
+  if (book && book.coverImg) return `<img class="cover-photo" data-cover="${book.coverImg}" alt=""><div class="cover-scrim"></div>${inner}`;
+  return inner;
 }
 function displayTitle(e){
   const line = ((e.content||"").replace(/!\[[^\]]*\]\([^)]*\)/g,"").split("\n").map(s=>s.trim()).find(Boolean)) || "";
@@ -927,7 +959,7 @@ async function renderShelf(){
   grid.innerHTML = books.map(b=>{
     const cnt=allEntries.filter(e=>e.book===b.id).length;
     const grad=themeOf(b).grad;
-    return `<div class="book-cover-card" data-id="${b.id}"><div class="book-cover-img" style="background:${grad}">${coverHtml(b)}<span class="count">${cnt} 篇</span></div><b>${esc(b.title||'未命名')}</b></div>`;
+    return `<div class="book-cover-card" data-id="${b.id}"><div class="book-cover-img${b.coverImg?' has-photo':''}" style="background:${grad}">${coverHtml(b)}<span class="count">${cnt} 篇</span></div><b>${esc(b.title||'未命名')}</b></div>`;
   }).join('') + `<div class="book-add" id="shelf-add"><span style="font-size:26px;">＋</span><span>新建一册</span></div>`;
   for(const im of grid.querySelectorAll('img[data-cover]')){ const u=await imgUrl(im.dataset.cover); if(u) im.src=u; else im.remove(); }
   grid.querySelectorAll('.book-cover-card').forEach(el=>el.onclick=()=>openBookDetail(el.dataset.id));
@@ -938,6 +970,65 @@ async function renderShelf(){
 let currentBookId=null, currentBook=null;
 async function getBook(id){ return await dbGet('books',id); }
 async function persistBook(b){ b.updatedAt=Date.now(); await dbPut('books',b); }
+
+/* ================= 册封面（照片） ================= */
+let coverBusy=false;
+function openCoverSheet(){
+  if(!currentBook){ toast('先打开一册再换封面'); return; }
+  const row=$('cover-remove-row');
+  if(row) row.style.display=currentBook.coverImg?'':'none';
+  openSheet('cover-sheet');
+}
+function pickCover(){ closeSheet(null,'cover-sheet'); const f=$('cover-file'); if(f){ f.value=''; f.click(); } }
+async function coverBlob(file){
+  // 压到最长边 1200px 的 JPEG，避免把同步数据撑爆
+  try{
+    const bmp=await createImageBitmap(file);
+    const max=1200, s=Math.min(1,max/Math.max(bmp.width,bmp.height));
+    const w=Math.max(1,Math.round(bmp.width*s)), h=Math.max(1,Math.round(bmp.height*s));
+    const cv=document.createElement('canvas'); cv.width=w; cv.height=h;
+    cv.getContext('2d').drawImage(bmp,0,0,w,h);
+    const blob=await new Promise(r=>cv.toBlob(r,'image/jpeg',0.86));
+    if(blob) return blob;
+  }catch(e){ }
+  return file;
+}
+async function imageInUse(id){
+  if(!id) return false;
+  if((allEntries||[]).some(e=>(e.images||[]).includes(id))) return true;
+  const books=await dbAll('books');
+  return books.some(b=>b.coverImg===id);
+}
+async function setCover(file){
+  if(!currentBook) return;
+  if(!file || !file.type.startsWith('image/')) return toast('请选一张图片');
+  if(coverBusy) return; coverBusy=true;
+  try{
+    const blob=await coverBlob(file);
+    const id=uid();
+    await dbPut('images',{id,blob,name:file.name||'cover',addedAt:Date.now()});
+    const old=currentBook.coverImg;
+    currentBook.coverImg=id;
+    await persistBook(currentBook);
+    urlCache.set(id, URL.createObjectURL(blob));
+    if(old && !(await imageInUse(old))){ await dbDel('images',old); urlCache.delete(old); }
+    toast('封面已更新');
+    await renderBookDetail();
+    await renderShelf();
+  }catch(e){ toast('设置封面失败，请重试'); }
+  finally{ coverBusy=false; }
+}
+async function removeCover(){
+  closeSheet(null,'cover-sheet');
+  if(!currentBook || !currentBook.coverImg) return;
+  const old=currentBook.coverImg;
+  currentBook.coverImg=null;
+  await persistBook(currentBook);
+  if(!(await imageInUse(old))){ await dbDel('images',old); urlCache.delete(old); }
+  toast('已恢复默认封面');
+  await renderBookDetail();
+  await renderShelf();
+}
 async function openBookDetail(id){
   currentBookId=id;
   const b=await getBook(id); if(!b){ renderShelf(); go('library'); return; }
@@ -953,7 +1044,7 @@ async function renderBookDetail(){
   const span=chapters.length?fmtDot(chapters[0].createdAt)+(chapters.length>1?'–'+fmtDot(chapters[chapters.length-1].createdAt):''):'—';
   const tb=$('bk-topbook'); tb.querySelector('b').textContent=book.title||'未命名'; tb.querySelector('i').textContent=`${chapters.length} 页 · ${words} 字`;
   const grad=themeOf(book).grad;
-  const head=`<div class="bk-head"><div class="bk-cover" style="background:${grad}">${coverHtml(book)}<span class="swap" onclick="event.stopPropagation();toast('换封面：上传一张图即可')">换封面</span></div>
+  const head=`<div class="bk-head"><div class="bk-cover${book.coverImg?' has-photo':''}" style="background:${grad}" onclick="openCoverSheet()">${coverHtml(book)}<span class="swap" onclick="event.stopPropagation();openCoverSheet()">换封面</span></div>
     <div class="info"><span class="pill-badge">${esc(themeOf(book).label)}</span><h2>${esc(book.title||'未命名')}</h2><p>${esc(book.subtitle||'写一句话，说明这一册要做什么')}</p></div></div>
     <div class="bk-stats"><div class="cell"><b>${chapters.length}</b><span>日记页</span></div><div class="cell"><b>${words}</b><span>字数</span></div><div class="cell"><b class="sm">${esc(span)}</b><span>时间跨度</span></div><div class="cell"><b>${pct}%</b><span>清单 ${ckDone}/${ck.length}</span></div></div>`;
   const ckPreview=ck.slice(0,3).map(c=>`<div class="ck-line${c.done?" done":""}"><span class="dot">${c.done?"✓":""}</span><span class="t">${esc(c.text)}</span></div>`).join("");
@@ -961,6 +1052,7 @@ async function renderBookDetail(){
   const recent=chapters.slice().reverse().slice(0,3).map((e,i)=>`<button class="recent-item" onclick="showPage('${e.id}')"><span class="recent-no">0${i+1}</span><span class="recent-info"><b>${esc(displayTitle(e))}</b><i>${fmtDate(e.createdAt)} · ${stripMd(e.content).length} 字</i></span><span class="arr">›</span></button>`).join("");
   const diaryModule=`<div class="bk-module"><div class="mod-head"><h3>最近写的页</h3><span>${chapters.length} 页</span></div>${recent||'<p style="font-size:12px;color:var(--text2)">还没有日记。第一行写什么，这一页就叫什么。</p>'}<button class="btn-pill btn-pill-primary bk-cta" onclick="event.stopPropagation();openEditor({book:'${book.id}'})">✎ 开始记录</button></div>`;
   $('bk-detail-body').innerHTML=head+ckModule+diaryModule;
+  for(const im of $('bk-detail-body').querySelectorAll('img[data-cover]')){ const u=await imgUrl(im.dataset.cover); if(u) im.src=u; else im.remove(); }
   const eBtn=$('bk-edit'), dBtn=$('bk-del');
   if(eBtn) eBtn.onclick=()=>editBook(book);
   if(dBtn) dBtn.onclick=()=>deleteBook(book);
@@ -1314,6 +1406,7 @@ $("sync-gen").onclick=genSyncCode;
 $("sync-copy").onclick=copySyncCode;
 $("sync-import").onclick=importSyncCode;
 $("ed-img-file").addEventListener("change",e=>{ if(e.target.files&&e.target.files.length) addImages(e.target.files); e.target.value=""; });
+$("cover-file").addEventListener("change",e=>{ const f=e.target.files&&e.target.files[0]; if(f) setCover(f); e.target.value=""; });
 $("import-file").addEventListener("change",e=>{ if(e.target.files&&e.target.files[0]) importBackup(e.target.files[0]); e.target.value=""; });
 
 /* ================= 启动 ================= */
