@@ -980,18 +980,22 @@ function openCoverSheet(){
   openSheet('cover-sheet');
 }
 function pickCover(){ closeSheet(null,'cover-sheet'); const f=$('cover-file'); if(f){ f.value=''; f.click(); } }
-async function coverBlob(file){
-  // 压到最长边 1200px 的 JPEG，避免把同步数据撑爆
+async function compressImage(file,max=1440,q=0.8){
+  // 压到最长边 max 的 JPEG，避免原图把同步数据撑爆
   try{
     const bmp=await createImageBitmap(file);
-    const max=1200, s=Math.min(1,max/Math.max(bmp.width,bmp.height));
+    const s=Math.min(1,max/Math.max(bmp.width,bmp.height));
     const w=Math.max(1,Math.round(bmp.width*s)), h=Math.max(1,Math.round(bmp.height*s));
     const cv=document.createElement('canvas'); cv.width=w; cv.height=h;
     cv.getContext('2d').drawImage(bmp,0,0,w,h);
-    const blob=await new Promise(r=>cv.toBlob(r,'image/jpeg',0.86));
-    if(blob) return blob;
+    const blob=await new Promise(r=>cv.toBlob(r,'image/jpeg',q));
+    if(blob && blob.size < (file.size||Number.MAX_SAFE_INTEGER)) return blob;
   }catch(e){ }
   return file;
+}
+async function coverBlob(file){
+  // 封面压到最长边 1200px 的 JPEG
+  return compressImage(file,1200,0.86);
 }
 async function imageInUse(id){
   if(!id) return false;
@@ -1214,7 +1218,7 @@ function cancelEditor(){ edEditId=null; if(edBook){ backToBook(); } else { go('h
 async function addImages(files){
   const left=MAX_IMG-edImgIds.length; if(left<=0){ toast(`最多 ${MAX_IMG} 张图片`); return; }
   let added=0;
-  for(const f of files.slice(0,left)){ if(!f.type.startsWith('image/')) continue; const id=uid(); await dbPut('images',{id,blob:f,name:f.name,addedAt:Date.now()}); edImgIds.push(id); added++; }
+  for(const f of files.slice(0,left)){ if(!f.type.startsWith('image/')) continue; const id=uid(); const blob=await compressImage(f); await dbPut('images',{id,blob,name:f.name,addedAt:Date.now()}); edImgIds.push(id); added++; }
   renderEdImgs();
   if(added<files.length) toast(`最多 ${MAX_IMG} 张，已添加 ${added} 张`);
 }
@@ -1342,7 +1346,7 @@ async function deriveKey(pass){ const enc=new TextEncoder(); const mat=await cry
 async function encryptText(text,pass){ const key=await deriveKey(pass); const iv=crypto.getRandomValues(new Uint8Array(12)); const ct=await crypto.subtle.encrypt({name:"AES-GCM",iv},key,new TextEncoder().encode(text)); return bytesToB64(iv)+":"+bytesToB64(ct); }
 async function decryptText(payload,pass){ const [ivB,ctB]=payload.split(":"); const key=await deriveKey(pass); const pt=await crypto.subtle.decrypt({name:"AES-GCM",iv:b64ToBytes(ivB)},key,b64ToBytes(ctB)); return new TextDecoder().decode(pt); }
 function ghHeaders(cfg){ return {"Authorization":"Bearer "+cfg.token,"Accept":"application/vnd.github+json","Content-Type":"application/json"}; }
-async function gistPull(cfg){ const res=await fetch("https://api.github.com/gists/"+cfg.gist,{headers:ghHeaders(cfg)}); if(res.status===404)return null; if(!res.ok)throw new Error("GitHub 返回 "+res.status+(res.status===401?"（令牌无效或过期）":"")); const g=await res.json(); const f=g.files&&g.files[SYNC_FILE]; if(!f||f.truncated)throw new Error("云端数据缺失或过大，请减少图片后重试"); const outer=JSON.parse(f.content); let inner=outer.data; if(outer.enc&&outer.enc!=="none"){ if(!cfg.pass)throw new Error("云端数据已加密，请填写同步口令"); inner=await decryptText(outer.data,cfg.pass); } return JSON.parse(inner); }
+async function gistPull(cfg){ const res=await fetch("https://api.github.com/gists/"+cfg.gist,{headers:ghHeaders(cfg)}); if(res.status===404)return null; if(!res.ok)throw new Error("GitHub 返回 "+res.status+(res.status===401?"（令牌无效或过期）":"")); const g=await res.json(); const f=g.files&&g.files[SYNC_FILE]; if(!f)throw new Error("云端数据缺失"); let content=f.content; if(f.truncated){ const rr=await fetch(f.raw_url); if(!rr.ok)throw new Error("云端数据过大，拉取失败："+rr.status); content=await rr.text(); } const outer=JSON.parse(content); let inner=outer.data; if(outer.enc&&outer.enc!=="none"){ if(!cfg.pass)throw new Error("云端数据已加密，请填写同步口令"); inner=await decryptText(outer.data,cfg.pass); } return JSON.parse(inner); }
 async function gistCreate(cfg,content){ const res=await fetch("https://api.github.com/gists",{method:"POST",headers:ghHeaders(cfg),body:JSON.stringify({description:"小懒记同步数据（加密备份）",public:false,files:{[SYNC_FILE]:{content}}})}); if(!res.ok)throw new Error("创建同步仓库失败："+res.status+(res.status===401?"（令牌无效或未勾选 gist 权限）":"")); const g=await res.json(); return g.id; }
 async function gistPatch(cfg,content){ const res=await fetch("https://api.github.com/gists/"+cfg.gist,{method:"PATCH",headers:ghHeaders(cfg),body:JSON.stringify({files:{[SYNC_FILE]:{content}}})}); if(!res.ok)throw new Error("上传失败："+res.status+(res.status===401?"（令牌无效或过期）":"")); return cfg.gist; }
 function lcBase(cfg){ let b=(cfg.api||"").trim().replace(/\/+$/,""); if(!/\/1\.1$/.test(b))b+="/1.1"; return b; }
@@ -1353,7 +1357,7 @@ async function lcPatch(cfg,content){ const body=JSON.stringify({blob:{__type:"By
 async function pullRemote(cfg){ return cfg.svc==="github"?gistPull(cfg):lcPull(cfg); }
 async function createRemote(cfg,content){ return cfg.svc==="github"?gistCreate(cfg,content):lcCreate(cfg,content); }
 async function pushRemote(cfg,content){ return cfg.svc==="github"?gistPatch(cfg,content):lcPatch(cfg,content); }
-async function gatherLocal(){ const entries=await dbAll("entries"); const books=await dbAll("books"); const refIds=new Set(); entries.forEach(e=>(e.images||[]).forEach(i=>refIds.add(i))); books.forEach(b=>{ if(b.coverImg)refIds.add(b.coverImg); }); const images={}; for(const id of refIds){ const rec=await dbGet("images",id); if(rec)images[id]=await blobToDataURL(rec.blob); } return {entries,books,images,tombstones:getTombstones()}; }
+async function gatherLocal(){ const entries=await dbAll("entries"); const books=await dbAll("books"); const refIds=new Set(); entries.forEach(e=>(e.images||[]).forEach(i=>refIds.add(i))); books.forEach(b=>{ if(b.coverImg)refIds.add(b.coverImg); }); const images={}; for(const id of refIds){ const rec=await dbGet("images",id); if(rec){ let blob=rec.blob; if(blob&&blob.size>600*1024){ const nb=await compressImage(blob,1440,0.8); if(nb&&nb!==blob){ blob=nb; try{ await dbPut("images",{...rec,blob:nb}); }catch(e){ } } } images[id]=await blobToDataURL(blob); } } return {entries,books,images,tombstones:getTombstones()}; }
 function mergeData(local,remote){ const out={entries:[],images:{},books:[],tombstones:{}}; const t=out.tombstones; for(const [k,v] of Object.entries(local.tombstones||{}))t[k]=Math.max(t[k]||0,v); for(const [k,v] of Object.entries((remote&&remote.tombstones)||{}))t[k]=Math.max(t[k]||0,v); const byId={}; for(const e of (local.entries||[]))byId[e.id]=e; for(const e of ((remote&&remote.entries)||[])){ const l=byId[e.id]; if(!l||(e.updatedAt||0)>(l.updatedAt||0))byId[e.id]=e; } for(const [id,e] of Object.entries(byId)){ const ts=t[id]; if(ts!==undefined&&ts>=(e.updatedAt||0)){ delete byId[id]; continue; } out.entries.push(e); } const bmap={}; for(const b of (local.books||[]))bmap[b.id]=b; for(const b of ((remote&&remote.books)||[])){ const l=bmap[b.id]; if(!l||(b.updatedAt||0)>(l.updatedAt||0))bmap[b.id]=b; } out.books=Object.values(bmap); const refIds=new Set(); out.entries.forEach(e=>(e.images||[]).forEach(i=>refIds.add(i))); out.books.forEach(b=>{ if(b.coverImg)refIds.add(b.coverImg); }); for(const [id,du] of Object.entries((remote&&remote.images)||{}))if(refIds.has(id))out.images[id]=du; for(const [id,du] of Object.entries(local.images||{}))if(refIds.has(id))out.images[id]=du; return out; }
 async function applyMerged(m){ for(const e of m.entries){ const local=await dbGet("entries",e.id); if(!local||(e.updatedAt||0)>(local.updatedAt||0))await dbPut("entries",e); } for(const [id,ts] of Object.entries(m.tombstones)){ const local=await dbGet("entries",id); if(local&&(local.updatedAt||0)<=ts){ for(const img of (local.images||[]))await dbDel("images",img); await dbDel("entries",id); } } for(const [id,du] of Object.entries(m.images||{})){ const have=await dbGet("images",id); if(!have)await dbPut("images",{id,blob:dataURLToBlob(du),addedAt:Date.now()}); } for(const b of (m.books||[])){ const local=await dbGet("books",b.id); if(!local||(b.updatedAt||0)>(local.updatedAt||0))await dbPut("books",b); } urlCache.clear(); }
 let syncing=false;
@@ -1362,7 +1366,7 @@ async function doSync(){ if(syncing)return; const cfg=readSyncForm(); saveSyncCf
   if(!cfg.gist&&!cfg.pass){ openSyncModal(); return toast("首次同步请先设置同步口令（加密用）"); }
   if(cfg.pass&&!(window.crypto&&crypto.subtle))return toast("当前环境不支持加密同步，请用 https 地址打开");
   syncing=true; const btn=$("sync-run"); btn.disabled=true; btn.textContent="同步中…";
-  try{ let remote=null; if(cfg.gist)remote=await pullRemote(cfg); const local=await gatherLocal(); const merged=mergeData(local,remote); await applyMerged(merged); await refreshFeed(); let inner=JSON.stringify(merged); let outer; if(cfg.pass){ outer=JSON.stringify({app:"xiaolanji",v:1,enc:"aes-gcm-pbkdf2",data:await encryptText(inner,cfg.pass)}); } else { outer=JSON.stringify({app:"xiaolanji",v:1,enc:"none",data:inner}); } if(outer.length>8*1024*1024)throw new Error("数据超过 8MB（图片太多），请先清理图片或改用备份文件"); cfg.gist=cfg.gist?await pushRemote(cfg,outer):await createRemote(cfg,outer); cfg.last=Date.now(); saveSyncCfg(cfg); $("sync-gist").value=cfg.gist; renderSyncMeta(); toast(`同步完成：云端共 ${merged.entries.length} 篇记录`); }
+  try{ let remote=null; if(cfg.gist)remote=await pullRemote(cfg); const local=await gatherLocal(); const merged=mergeData(local,remote); await applyMerged(merged); await refreshFeed(); let inner=JSON.stringify(merged); let outer; if(cfg.pass){ outer=JSON.stringify({app:"xiaolanji",v:1,enc:"aes-gcm-pbkdf2",data:await encryptText(inner,cfg.pass)}); } else { outer=JSON.stringify({app:"xiaolanji",v:1,enc:"none",data:inner}); } if(outer.length>8*1024*1024)throw new Error("数据超过 8MB（图片太多），请先清理图片或改用备份文件"); cfg.gist=cfg.gist?await pushRemote(cfg,outer):await createRemote(cfg,outer); cfg.last=Date.now(); saveSyncCfg(cfg); $("sync-gist").value=cfg.gist; renderSyncMeta(); const imgN=Object.keys(merged.images).length, bkN=merged.books.length; toast(`同步完成：${merged.entries.length} 篇记录 · ${imgN} 张图片 · ${bkN} 册（${(outer.length/1024/1024).toFixed(1)}MB）`); }
   catch(err){ toast(err.message||"同步失败，请检查网络"); }
   finally{ syncing=false; btn.disabled=false; btn.textContent="立即同步"; }
 }
@@ -1405,7 +1409,7 @@ $("sync-run").onclick=doSync;
 $("sync-gen").onclick=genSyncCode;
 $("sync-copy").onclick=copySyncCode;
 $("sync-import").onclick=importSyncCode;
-$("ed-img-file").addEventListener("change",e=>{ if(e.target.files&&e.target.files.length) addImages(e.target.files); e.target.value=""; });
+$("ed-img-file").addEventListener("change",e=>{ if(e.target.files&&e.target.files.length) addImages([...e.target.files]); e.target.value=""; });
 $("cover-file").addEventListener("change",e=>{ const f=e.target.files&&e.target.files[0]; if(f) setCover(f); e.target.value=""; });
 $("import-file").addEventListener("change",e=>{ if(e.target.files&&e.target.files[0]) importBackup(e.target.files[0]); e.target.value=""; });
 
