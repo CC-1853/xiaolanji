@@ -120,9 +120,17 @@
   .live-wrap{position:relative;width:100%;height:100%;}
   .xlj-media{width:100%;height:100%;object-fit:cover;display:block;border-radius:inherit;}
   .live-badge{position:absolute;left:6px;top:6px;display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:999px;background:rgba(20,20,30,.5);color:#fff;font-size:10px;line-height:1;backdrop-filter:blur(4px);pointer-events:none;}
-  .live-badge::before{content:"";width:0;height:0;border-style:solid;border-width:4px 0 4px 6px;border-color:transparent transparent transparent #fff;}
+  .live-badge::before{content:"";width:6px;height:6px;border-radius:50%;background:#fff;animation:livePulse 1.8s infinite;}
+  @keyframes livePulse{0%{box-shadow:0 0 0 0 rgba(255,255,255,.75);}70%{box-shadow:0 0 0 6px rgba(255,255,255,0);}100%{box-shadow:0 0 0 0 rgba(255,255,255,0);}}
   .live-badge.bad{background:rgba(176,44,44,.8);}
   .live-badge.bad::before{display:none;}
+  .tool-chip.live{background:#ECE6F8;color:#7A5FB0;font-weight:700;}
+  .lg-body{margin:4px 0 22px;}
+  .lg-step{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--border);font-size:14.5px;color:var(--text);line-height:1.5;}
+  .lg-step>b:first-child{flex:none;width:22px;height:22px;border-radius:50%;background:#ECE6F8;color:#7A5FB0;font-size:12px;display:flex;align-items:center;justify-content:center;}
+  .lg-step span b{color:var(--primary);}
+  .lg-go{width:100%;background:var(--primary);color:#fff;border:none;border-radius:24px;padding:14px;font-size:15px;font-weight:600;font-family:var(--font);cursor:pointer;}
+  .lg-note{text-align:center;font-size:11.5px;color:var(--text2);margin-top:12px;}
   .media-item{position:relative;width:100%;height:100%;cursor:pointer;}
   .entry-img .media-item{width:100%;height:100%;}
   .live-badge.vid{background:rgba(40,40,60,.55);}
@@ -495,11 +503,13 @@
     <textarea class="editor-area" id="ed-content" placeholder="今天发生了什么？&#10;像发朋友圈一样，随手记下来..."></textarea>
     <div class="ed-imgs" id="ed-imgs"></div>
     <div class="ed-tools">
+      <div class="tool-chip live" onclick="openLivePicker()">◉ 实况</div>
       <div class="tool-chip" onclick="document.getElementById('ed-img-file').click()">📷 图片/视频</div>
       <div class="tool-chip" onclick="toast('语音功能即将上线')">🎙 语音</div>
       <div class="tool-chip" onclick="toast('AI 润色即将上线')">✨ AI 润色</div>
     </div>
     <input type="file" id="ed-img-file" accept="image/*,video/mp4,video/quicktime,.mov,.mp4,.m4v" multiple hidden>
+    <input type="file" id="ed-live-file" accept="video/mp4,video/quicktime,.mov,.mp4,.m4v" multiple hidden>
   </section>
 
   <input type="file" id="cover-file" accept="image/*" hidden>
@@ -626,6 +636,24 @@
       <div class="settings-item" onclick="toast('写作提醒：每日 21:00')"><div class="left"><div class="ic" style="background:#ECE6F8;color:#A18CD1">🔔</div>提醒</div><div class="right">每日 21:00 ›</div></div>
     </div>
   </section>
+
+  <!-- SHEET：加实况，只提示一次 -->
+  <div class="modal" id="live-guide" onclick="closeSheet(event,'live-guide')">
+    <div class="modal-sheet" onclick="event.stopPropagation()">
+      <div class="modal-handle"></div>
+      <div class="sheet-title">
+        <h3>加实况</h3>
+        <button class="icon-btn" onclick="closeSheet(null,'live-guide')">✕</button>
+      </div>
+      <div class="lg-body">
+        <div class="lg-step"><b>1</b><span>在「照片」里打开那张实况，点 <b>分享</b></span></div>
+        <div class="lg-step"><b>2</b><span>选 <b>存储为视频</b></span></div>
+        <div class="lg-step"><b>3</b><span>回来点下面的按钮，选它就好</span></div>
+      </div>
+      <button class="lg-go" onclick="chooseLiveVideo()">去选视频</button>
+      <div class="lg-note">只提示这一次，以后点「◉ 实况」直接选</div>
+    </div>
+  </div>
 
   <!-- SHEET：外观 -->
   <div class="modal" id="theme-sheet" onclick="closeSheet(event,'theme-sheet')">
@@ -952,6 +980,16 @@ function go(id){
 }
 function openSheet(id){document.getElementById(id).classList.add('show');}
 function closeSheet(e,id){if(!e||e.target.id===id)document.getElementById(id).classList.remove('show');}
+function openLivePicker(){
+  let seen=false; try{ seen=!!localStorage.getItem("xlj.liveGuideSeen"); }catch(e){}
+  if(seen){ $("ed-live-file").click(); return; }
+  openSheet("live-guide");
+}
+function chooseLiveVideo(){
+  try{ localStorage.setItem("xlj.liveGuideSeen","1"); }catch(e){}
+  closeSheet(null,"live-guide");
+  $("ed-live-file").click();   // 必须在同一手势里同步调用，否则 iOS Safari 会拦截文件选择器
+}
 
 /* ===== 外观（两个固定模式） ===== */
 var MODES={
@@ -1585,6 +1623,7 @@ $("sync-gen").onclick=genSyncCode;
 $("sync-copy").onclick=copySyncCode;
 $("sync-import").onclick=importSyncCode;
 $("ed-img-file").addEventListener("change",e=>{ if(e.target.files&&e.target.files.length) addImages([...e.target.files]); e.target.value=""; });
+$("ed-live-file").addEventListener("change",e=>{ if(e.target.files&&e.target.files.length) addImages([...e.target.files]); e.target.value=""; });
 $("cover-file").addEventListener("change",e=>{ const f=e.target.files&&e.target.files[0]; if(f) setCover(f); e.target.value=""; });
 $("import-file").addEventListener("change",e=>{ if(e.target.files&&e.target.files[0]) importBackup(e.target.files[0]); e.target.value=""; });
 document.addEventListener("click",e=>{ const m=e.target.closest&&e.target.closest("[data-mid]"); if(m){ e.stopPropagation(); e.preventDefault(); openMedia(m.getAttribute("data-mid")); } }, true);
