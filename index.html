@@ -132,6 +132,7 @@
   .media-lightbox-inner video,.media-lightbox-inner img{max-width:100vw;max-height:100vh;width:auto;height:auto;border-radius:12px;display:block;}
   .ed-hint{font-size:11px;color:var(--text2);line-height:1.5;margin-top:8px;padding:0 2px;}
   .ed-hint b{color:var(--primary);font-weight:700;}
+  .tool-chip.live{background:#ECE6F8;color:#7A5FB0;font-weight:700;}
   .feed-comments{margin-top:12px;}
   .feed-comments .comment-list{gap:8px;margin-top:0;}
   .feed-comments .comment-input{margin-top:10px;}
@@ -496,13 +497,15 @@
     </div>
     <textarea class="editor-area" id="ed-content" placeholder="今天发生了什么？&#10;像发朋友圈一样，随手记下来..."></textarea>
     <div class="ed-imgs" id="ed-imgs"></div>
-    <div class="ed-hint">手机相册直选实况只会得到静态图。想看动态，请把实况<b>转成视频（MP4 最稳）</b>再上传，或直接选一段视频——会自动循环播放并标「实况」</div>
+    <div class="ed-hint"><b>◉ 实况</b>：相册里的动态照片直接选就有动态。iPhone 实况请点「◉ 实况」选视频；若列表里找不到，先在照片 App 对实况点「分享 → 存储为视频」，再回来选它。上传后会自动循环播放并标「实况」</div>
     <div class="ed-tools">
-      <div class="tool-chip" onclick="document.getElementById('ed-img-file').click()">📷 图片/视频</div>
+      <div class="tool-chip live" onclick="document.getElementById('ed-live-file').click()">◉ 实况</div>
+      <div class="tool-chip" onclick="document.getElementById('ed-img-file').click()">📷 图片</div>
       <div class="tool-chip" onclick="toast('语音功能即将上线')">🎙 语音</div>
       <div class="tool-chip" onclick="toast('AI 润色即将上线')">✨ AI 润色</div>
     </div>
     <input type="file" id="ed-img-file" accept="image/*,video/*" multiple hidden>
+    <input type="file" id="ed-live-file" accept="video/*" multiple hidden>
   </section>
 
   <input type="file" id="cover-file" accept="image/*" hidden>
@@ -779,6 +782,57 @@ async function imgUrl(id){
 function blobToDataURL(blob){ return new Promise(res => { const r = new FileReader(); r.onload = () => res(r.result); r.readAsDataURL(blob); }); }
 function dataURLToBlob(u){ const [head, b64] = u.split(","); const mime = head.match(/:(.*?);/)[1]; const bin = atob(b64); return new Blob([new Uint8Array([...bin].map(c=>c.charCodeAt(0)))], {type:mime}); }
 
+/* 安卓/三星/华为/小米「动态照片」：一张 JPG 尾部藏着一段 MP4，纯前端把它抠出来 */
+async function extractMotionPhoto(file){
+  try{
+    if(file.size < 80*1024 || file.size > 60*1024*1024) return null;
+    if(!/^image\//.test(file.type||"") && !/\.(jpe?g|heic|heif)$/i.test(file.name||"")) return null;
+    const buf=await file.arrayBuffer(), u8=new Uint8Array(buf), dv=new DataView(buf);
+    const dec=new TextDecoder("iso-8859-1");
+    const head=dec.decode(u8.slice(0,65536));
+    const tail=dec.decode(u8.slice(Math.max(0,u8.length-8192)));
+    if(!/MicroVideo|MotionPhoto|GCamera|LIVE_/i.test(head+tail)) return null;
+    let box=-1;
+    for(let i=u8.length-40;i>=4;i--){
+      if(u8[i]===0x66&&u8[i+1]===0x74&&u8[i+2]===0x79&&u8[i+3]===0x70){ box=i-4; break; }
+    }
+    if(box<4) return null;
+    const sz=dv.getUint32(box);
+    if(sz<16||box+sz>u8.length) return null;
+    const nx=box+sz;
+    const nt=(nx+8<=u8.length)?dec.decode(u8.slice(nx+4,nx+8)):"";
+    if(!/^(mdat|moov|free|wide|skip)$/.test(nt)) return null;  // 防误判：JPEG 压缩数据里也可能出现 ftyp 字节
+    let vend=u8.length;
+    const tStart=Math.max(nx,u8.length-96);
+    const li=dec.decode(u8.slice(tStart,u8.length)).lastIndexOf("LIVE_");
+    if(li>=0) vend=tStart+li;                                   // 华为在 MP4 后追加的尾注要切掉
+    if(vend-box < 48*1024) return null;
+    let eoi=-1;
+    for(let i=Math.min(box,u8.length-2);i>=1;i--){ if(u8[i-1]===0xFF&&u8[i]===0xD9){ eoi=i+1; break; } }
+    const still=eoi>1024?new Blob([u8.slice(0,eoi)],{type:"image/jpeg"}):null;
+    return {video:new Blob([u8.slice(box,vend)],{type:"video/mp4"}),still};
+  }catch(e){ return null; }
+}
+/* 取视频第一帧做封面，让「单独一段视频」看起来就是一张实况照片 */
+function videoPoster(blob){
+  return new Promise(res=>{
+    let done=false,t;
+    const u=URL.createObjectURL(blob), v=document.createElement("video");
+    const fin=b=>{ if(done)return; done=true; clearTimeout(t); URL.revokeObjectURL(u); res(b); };
+    t=setTimeout(()=>fin(null),5000);
+    v.muted=true; v.playsInline=true; v.preload="auto"; v.src=u;
+    v.onerror=()=>fin(null);
+    const grab=()=>{ try{
+      const w=Math.min(v.videoWidth||720,900), h=Math.round(w*(v.videoHeight||720)/(v.videoWidth||720));
+      if(!w||!h) return fin(null);
+      const cv=document.createElement("canvas"); cv.width=w; cv.height=h;
+      cv.getContext("2d").drawImage(v,0,0,w,h);
+      cv.toBlob(b=>fin(b),"image/jpeg",0.8);
+    }catch(e){ fin(null); } };
+    v.onloadeddata=()=>{ try{ v.currentTime=0.1; }catch(e){ grab(); } };
+    v.onseeked=grab;
+  });
+}
 function mediaErr(el){ const b=el&&el.parentElement&&el.parentElement.querySelector('.live-badge'); if(b){ b.textContent='格式不支持'; b.classList.add('bad'); } }
 async function mediaHtml(id, cls){
   const rec = await dbGet("images", id);
@@ -1307,29 +1361,40 @@ async function addImages(files){
   const imgs=files.filter(isImg), vids=files.filter(isVid);
   let added=0, live=0, skipped=0;
   const imgMap={}, usedStill=new Set();
+  const putLive=async(stillId,vblob,vname)=>{
+    const vid=uid();
+    await dbPut('images',{id:vid,blob:vblob,kind:'video',name:vname,addedAt:Date.now(),videoType:vblob.type||'video/mp4',stillId});
+    const still=await dbGet('images',stillId);
+    if(still){ still.videoId=vid; await dbPut('images',still); }
+    usedStill.add(stillId); live++;
+  };
   for(const f of imgs){
     if(added>=left){ skipped++; continue; }
-    const id=uid(); const blob=await compressImage(f);
+    const id=uid();
+    const motion=await extractMotionPhoto(f);          // 安卓动态照片：相册直选就能拿到动态
+    const blob=await compressImage((motion&&motion.still)?motion.still:f);
     await dbPut('images',{id,blob,name:f.name,addedAt:Date.now()});
     edImgIds.push(id); imgMap[stem(f.name)]=id; added++;
+    if(motion) await putLive(id,motion.video,f.name.replace(/\.[^.]+$/,"")+".mp4");
   }
   for(const f of vids){
-    const vid=uid();
-    const vrec={id:vid,blob:f,kind:'video',name:f.name,addedAt:Date.now(),videoType:f.type||'video/mp4'};
     let stillId=imgMap[stem(f.name)];
     if(stillId&&usedStill.has(stillId)) stillId=null;
-    // 只选了「1 张照片 + 视频」时，文件名不同也配成实况（手机/相机常重命名为不同名）
+    // 只选了「1 张照片 + 视频」时，文件名不同也配成实况
     if(!stillId&&imgs.length===1&&!usedStill.size) stillId=Object.values(imgMap)[0]||null;
-    if(stillId){
-      const still=await dbGet('images',stillId);
-      if(still&&!still.videoId){
-        still.videoId=vid; await dbPut('images',still);
-        vrec.stillId=stillId; await dbPut('images',vrec);
-        usedStill.add(stillId); live++; continue;
-      }
-    }
+    if(stillId){ await putLive(stillId,f,f.name); continue; }
     if(added>=left){ skipped++; continue; }
-    await dbPut('images',vrec); edImgIds.push(vid); added++;
+    const poster=await videoPoster(f);                  // iPhone「存储为视频」导出后，自动配封面
+    if(poster){
+      const sid=uid();
+      await dbPut('images',{id:sid,blob:poster,name:'cover-'+f.name,addedAt:Date.now()});
+      edImgIds.push(sid); added++;
+      await putLive(sid,f,f.name);
+    }else{
+      const vid=uid();
+      await dbPut('images',{id:vid,blob:f,kind:'video',name:f.name,addedAt:Date.now(),videoType:f.type||'video/mp4'});
+      edImgIds.push(vid); added++;
+    }
   }
   renderEdImgs();
   toast(`已添加 ${added+live} 个媒体${live?`，${live} 个实况`:''}${skipped?`（跳过 ${skipped} 个）`:''}`);
@@ -1482,7 +1547,7 @@ async function doSync(){ if(syncing)return; const cfg=readSyncForm(); saveSyncCf
   if(!cfg.gist&&!cfg.pass){ openSyncModal(); return toast("首次同步请先设置同步口令（加密用）"); }
   if(cfg.pass&&!(window.crypto&&crypto.subtle))return toast("当前环境不支持加密同步，请用 https 地址打开");
   syncing=true; const btn=$("sync-run"); btn.disabled=true; btn.textContent="同步中…";
-  try{ let remote=null; if(cfg.gist)remote=await pullRemote(cfg); const local=await gatherLocal(); const merged=mergeData(local,remote); await applyMerged(merged); await refreshFeed(); let inner=JSON.stringify(merged); let outer; if(cfg.pass){ outer=JSON.stringify({app:"xiaolanji",v:1,enc:"aes-gcm-pbkdf2",data:await encryptText(inner,cfg.pass)}); } else { outer=JSON.stringify({app:"xiaolanji",v:1,enc:"none",data:inner}); } if(outer.length>8*1024*1024)throw new Error("数据超过 8MB（图片太多），请先清理图片或改用备份文件"); cfg.gist=cfg.gist?await pushRemote(cfg,outer):await createRemote(cfg,outer); cfg.last=Date.now(); saveSyncCfg(cfg); $("sync-gist").value=cfg.gist; renderSyncMeta(); const imgN=Object.keys(merged.images).length, bkN=merged.books.length; toast(`同步完成：${merged.entries.length} 篇记录 · ${imgN} 张图片 · ${bkN} 册（${(outer.length/1024/1024).toFixed(1)}MB）`); }
+  try{ let remote=null; if(cfg.gist)remote=await pullRemote(cfg); const local=await gatherLocal(); const merged=mergeData(local,remote); await applyMerged(merged); await refreshFeed(); let inner=JSON.stringify(merged); let outer; if(cfg.pass){ outer=JSON.stringify({app:"xiaolanji",v:1,enc:"aes-gcm-pbkdf2",data:await encryptText(inner,cfg.pass)}); } else { outer=JSON.stringify({app:"xiaolanji",v:1,enc:"none",data:inner}); } if(outer.length>20*1024*1024)throw new Error(`同步数据 ${(outer.length/1024/1024).toFixed(1)}MB，超出单次上限 20MB（实况/视频很占空间）。请删掉几段实况，或用「导出备份」存到本地`); cfg.gist=cfg.gist?await pushRemote(cfg,outer):await createRemote(cfg,outer); cfg.last=Date.now(); saveSyncCfg(cfg); $("sync-gist").value=cfg.gist; renderSyncMeta(); const imgN=Object.keys(merged.images).length, bkN=merged.books.length; toast(`同步完成：${merged.entries.length} 篇记录 · ${imgN} 张图片 · ${bkN} 册（${(outer.length/1024/1024).toFixed(1)}MB）`); }
   catch(err){ toast(err.message||"同步失败，请检查网络"); }
   finally{ syncing=false; btn.disabled=false; btn.textContent="立即同步"; }
 }
@@ -1526,6 +1591,7 @@ $("sync-gen").onclick=genSyncCode;
 $("sync-copy").onclick=copySyncCode;
 $("sync-import").onclick=importSyncCode;
 $("ed-img-file").addEventListener("change",e=>{ if(e.target.files&&e.target.files.length) addImages([...e.target.files]); e.target.value=""; });
+$("ed-live-file").addEventListener("change",e=>{ if(e.target.files&&e.target.files.length) addImages([...e.target.files]); e.target.value=""; });
 $("cover-file").addEventListener("change",e=>{ const f=e.target.files&&e.target.files[0]; if(f) setCover(f); e.target.value=""; });
 $("import-file").addEventListener("change",e=>{ if(e.target.files&&e.target.files[0]) importBackup(e.target.files[0]); e.target.value=""; });
 document.addEventListener("click",e=>{ const m=e.target.closest&&e.target.closest("[data-mid]"); if(m){ e.stopPropagation(); e.preventDefault(); openMedia(m.getAttribute("data-mid")); } }, true);
