@@ -121,6 +121,8 @@
   .xlj-media{width:100%;height:100%;object-fit:cover;display:block;border-radius:inherit;}
   .live-badge{position:absolute;left:6px;top:6px;display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:999px;background:rgba(20,20,30,.5);color:#fff;font-size:10px;line-height:1;backdrop-filter:blur(4px);pointer-events:none;}
   .live-badge::before{content:"";width:0;height:0;border-style:solid;border-width:4px 0 4px 6px;border-color:transparent transparent transparent #fff;}
+  .live-badge.bad{background:rgba(176,44,44,.8);}
+  .live-badge.bad::before{display:none;}
   .media-item{position:relative;width:100%;height:100%;cursor:pointer;}
   .entry-img .media-item{width:100%;height:100%;}
   .live-badge.vid{background:rgba(40,40,60,.55);}
@@ -396,26 +398,37 @@
   .onboarding-card h2{font-family:var(--font-serif);font-size:40px;font-weight:700;margin:18px 0 16px;line-height:1.2;letter-spacing:-1px;}
   .onboarding-card p{font-size:15px;color:var(--text2);line-height:1.7;margin-bottom:44px;}
 
-  /* ===== 云同步面板 ===== */
-  #sync-modal{position:absolute;inset:0;background:rgba(11,13,14,.45);z-index:140;display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s;}
-  #sync-modal.show{opacity:1;pointer-events:auto;}
-  .sync-sheet{background:var(--surface);width:100%;max-width:480px;border-radius:var(--radius-xl) var(--radius-xl) 0 0;padding:18px 18px 28px;max-height:84vh;overflow-y:auto;}
-  .sync-sheet h3{font-size:17px;font-weight:700;display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;}
-  .sync-sheet h3 button{color:var(--text2);font-size:13px;background:transparent;border:none;cursor:pointer;font-family:var(--font);}
-  .sync-sub{font-size:12.5px;color:var(--text2);line-height:1.8;margin-bottom:6px;}
-  .sync-sheet label{font-size:13px;color:var(--ink2,#6E7086);display:block;margin:14px 0 6px;}
-  .sync-sheet input,.sync-sheet select{width:100%;background:var(--bg);border:none;border-radius:var(--radius-sm);padding:12px 14px;outline:none;font-size:14px;font-family:var(--font);color:var(--text);}
-  .sync-meta{display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--ink2,#6E7086);margin-top:14px;}
+  /* ===== 云同步：我页独立栏目 ===== */
+  .sync-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-xl);box-shadow:var(--shadow-soft);overflow:hidden;}
+  .sync-card-top{display:flex;align-items:center;gap:12px;padding:16px;cursor:pointer;}
+  .sync-card-ic{width:36px;height:36px;border-radius:12px;background:#ECE6F8;color:#A18CD1;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;}
+  .sync-card-info{display:flex;flex-direction:column;gap:3px;flex:1;min-width:0;}
+  .sync-card-info b{font-size:15px;font-weight:700;}
+  .sync-card-info b.on{color:var(--primary);}
+  .sync-card-info span{font-size:12px;color:var(--text2);}
+  .sync-card-arrow{font-size:22px;color:var(--text2);transition:transform .2s;line-height:1;}
+  .sync-card-arrow.open{transform:rotate(90deg);}
+  .sync-card-body{padding:0 16px 18px;border-top:1px solid var(--border);}
+  .sync-note{font-size:12px;color:var(--text2);line-height:1.6;margin-top:14px;}
+  .sync-card-body label{font-size:12.5px;color:var(--text2);display:block;margin:14px 0 6px;}
+  .sync-card-body label.sync-auto{display:flex;align-items:center;gap:8px;}
+  .sync-card-body input,.sync-card-body select{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px;outline:none;font-size:14px;font-family:var(--font);color:var(--text);box-sizing:border-box;}
+  .sync-card-body input[type="checkbox"]{width:auto;padding:0;border:none;background:none;}
+  .sync-cfg-row input{flex:1;min-width:0;width:auto;}
+  .sync-meta{display:flex;justify-content:space-between;align-items:center;font-size:12.5px;color:var(--text2);margin-top:14px;}
   .sync-meta b{font-weight:600;color:var(--text);}
-  .sync-run{margin-top:16px;width:100%;background:var(--primary);color:#fff;border-radius:24px;padding:13px;font-size:15px;font-weight:600;cursor:pointer;border:none;font-family:var(--font);}
+  .sync-run{margin-top:14px;width:100%;background:var(--primary);color:#fff;border-radius:24px;padding:13px;font-size:15px;font-weight:600;cursor:pointer;border:none;font-family:var(--font);}
   .sync-run:disabled{opacity:.5;}
-  .sync-test{margin-top:10px;width:100%;background:#f2f1ee;color:var(--text);border:1px solid var(--border);border-radius:24px;padding:11px;font-size:14px;font-weight:600;cursor:pointer;font-family:var(--font);}
-  .sync-steps{font-size:12.5px;color:var(--text2);line-height:1.9;margin-top:16px;border-top:1px solid var(--border);padding-top:12px;}
-  .sync-cfg{margin-top:14px;border-top:1px solid var(--border);padding-top:12px;}
-  .sync-cfg>b{font-size:13px;color:var(--text2);}
+  .sync-test{margin-top:10px;width:100%;background:var(--bg);color:var(--text2);border:1px solid var(--border);border-radius:24px;padding:11px;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font);}
+  .sync-steps{font-size:11.5px;color:var(--text2);line-height:1.7;margin-top:12px;}
   .sync-cfg-row{display:flex;gap:8px;margin-top:8px;align-items:center;}
-  .sync-mini{flex:1;background:#f2f1ee;color:var(--text);border:1px solid var(--border);border-radius:18px;padding:9px;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font);}
-  #sync-code-out{width:100%;margin-top:8px;resize:none;font-size:11px;color:var(--text2);border:1px solid var(--border);border-radius:10px;padding:8px;background:var(--bg);word-break:break-all;font-family:var(--font);}
+  .sync-mini{flex:1;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:18px;padding:9px;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font);}
+  .sync-adv{margin-top:16px;border-top:1px solid var(--border);padding-top:12px;}
+  .sync-adv summary{font-size:13px;color:var(--text2);font-weight:600;cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;}
+  .sync-adv summary::-webkit-details-marker{display:none;}
+  .sync-adv summary::after{content:"›";font-size:18px;transition:transform .2s;}
+  .sync-adv[open] summary::after{transform:rotate(90deg);}
+  #sync-code-out{width:100%;margin-top:8px;resize:none;font-size:11px;color:var(--text2);border:1px solid var(--border);border-radius:10px;padding:8px;background:var(--bg);word-break:break-all;font-family:var(--font);box-sizing:border-box;}
   #sync-code-url{margin-top:8px;font-size:11.5px;color:var(--text2);line-height:1.6;word-break:break-all;}
   .sync-status{font-size:12px;padding:2px 8px;border-radius:10px;background:#eee;color:#888;}
   .sync-status.ok{background:#e6f4ea;color:#1a7f37;}
@@ -483,7 +496,7 @@
     </div>
     <textarea class="editor-area" id="ed-content" placeholder="今天发生了什么？&#10;像发朋友圈一样，随手记下来..."></textarea>
     <div class="ed-imgs" id="ed-imgs"></div>
-    <div class="ed-hint">可上传 <b>实况照片</b>（同时选照片和同名 .MOV 会自动配成实况），也可单独上传短视频，点开可看动态</div>
+    <div class="ed-hint">手机相册直选实况只会得到静态图。想看动态，请把实况<b>转成视频（MP4 最稳）</b>再上传，或直接选一段视频——会自动循环播放并标「实况」</div>
     <div class="ed-tools">
       <div class="tool-chip" onclick="document.getElementById('ed-img-file').click()">📷 图片/视频</div>
       <div class="tool-chip" onclick="toast('语音功能即将上线')">🎙 语音</div>
@@ -550,9 +563,66 @@
         <div class="banner-item"><div class="num" id="pf-books">0</div><div class="label">册</div></div>
       </div>
     </div>
+    <!-- 云同步：独立栏目 -->
+    <div class="section-title" style="margin-top:26px;">云同步</div>
+    <div class="sync-card" id="sync-card">
+      <div class="sync-card-top" onclick="toggleSyncCard()">
+        <div class="sync-card-ic">☁</div>
+        <div class="sync-card-info">
+          <b id="pf-sync-state">未连接</b>
+          <span id="pf-sync-last">点开连接设备</span>
+        </div>
+        <span class="sync-card-arrow" id="sync-card-arrow">›</span>
+      </div>
+      <div class="sync-card-body" id="sync-card-body" hidden>
+        <div class="sync-note">记录加密后存到你自己的云端，两端用同一份配置即可同步。</div>
+        <div class="sync-meta">
+          <span>上次同步：<b id="sync-last">从未</b></span>
+          <span id="sync-status" class="sync-status">未连接</span>
+        </div>
+        <button class="sync-run" id="sync-run">立即同步</button>
+        <div class="sync-cfg-row" style="margin-top:14px">
+          <button id="sync-gen" class="sync-mini">① 生成配置码 / 链接</button>
+          <button id="sync-copy" class="sync-mini" style="flex:0 0 64px" hidden>复制</button>
+        </div>
+        <textarea id="sync-code-out" readonly rows="2" hidden placeholder="生成的配置码会显示在这里"></textarea>
+        <div id="sync-code-url" hidden></div>
+        <div class="sync-cfg-row" style="margin-top:10px">
+          <input id="sync-code-in" type="text" placeholder="② 另一台设备粘贴配置码">
+          <button id="sync-import" class="sync-mini" style="flex:0 0 64px">导入</button>
+        </div>
+        <details class="sync-adv" id="sync-adv">
+          <summary>连接设置</summary>
+          <label>同步服务</label>
+          <select id="sync-svc">
+            <option value="github">GitHub（推荐）</option>
+            <option value="leancloud">LeanCloud</option>
+          </select>
+          <div id="sync-sec-leancloud" hidden>
+            <label>App ID</label>
+            <input id="lc-appid" type="text" autocomplete="off" placeholder="LeanCloud 应用凭证">
+            <label>App Key</label>
+            <input id="lc-appkey" type="password" autocomplete="off" placeholder="App Key">
+            <label>REST API 地址</label>
+            <input id="lc-api" type="text" autocomplete="off" placeholder="https://xxxx.lncldglobal.com/1.1">
+          </div>
+          <div id="sync-sec-github">
+            <label>GitHub 访问令牌</label>
+            <input id="sync-token" type="password" autocomplete="off" placeholder="ghp_ 开头的一串字符">
+          </div>
+          <label>同步口令</label>
+          <input id="sync-pass" type="password" autocomplete="off" placeholder="两台设备保持一致">
+          <label>同步仓库 ID</label>
+          <input id="sync-gist" type="text" autocomplete="off" placeholder="首次留空自动创建">
+          <label class="sync-auto"><input type="checkbox" id="sync-auto" checked> 自动同步</label>
+          <button class="sync-test" id="sync-test">测试连接</button>
+          <div class="sync-steps" id="sync-steps"></div>
+        </details>
+      </div>
+    </div>
+
     <div class="section-title" style="margin-top:26px;">设置</div>
     <div class="settings-list">
-      <div class="settings-item" onclick="openSyncModal()"><div class="left"><div class="ic" style="background:#ECE6F8;color:#A18CD1">☁</div>云同步</div><div class="right" id="pf-sync-state">未连接 ›</div></div>
       <div class="settings-item" onclick="openSheet('theme-sheet')"><div class="left"><div class="ic" style="background:#E9EFFB;color:#A6C1EE">🎨</div>外观</div><div class="right" id="pf-theme-label">普通模式 ›</div></div>
       <div class="settings-item" onclick="exportBackup()"><div class="left"><div class="ic" style="background:#FFE7EA;color:#FF9A9E">⇩</div>导出备份</div><div class="right">JSON ›</div></div>
       <div class="settings-item" onclick="document.getElementById('import-file').click()"><div class="left"><div class="ic" style="background:#FCE8F6;color:#FBC2EB">⇧</div>导入恢复</div><div class="right">JSON ›</div></div>
@@ -619,10 +689,10 @@
         <div class="p-info"><b>AI 润色</b><span>一键优化表达、调整语气</span></div>
         <div class="toggle on" onclick="this.classList.toggle('on')"></div>
       </div>
-      <div class="plugin-row">
+      <div class="plugin-row" onclick="closeSheet(null,'plugin-sheet');openSyncModal()" style="cursor:pointer">
         <div class="p-ic" style="background:#ECE6F8;color:#A18CD1;">☁</div>
-        <div class="p-info"><b>云同步</b><span>多端自动加密备份</span></div>
-        <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+        <div class="p-info"><b>云同步</b><span>在「我」页连接设备</span></div>
+        <div style="color:var(--text2);font-size:18px">›</div>
       </div>
       <div class="plugin-row">
         <div class="p-ic" style="background:#E9EFFB;color:#A6C1EE;">♫</div>
@@ -642,55 +712,7 @@
     </div>
   </div>
 
-  <!-- 云同步 -->
-  <div id="sync-modal" hidden>
-    <div class="sync-sheet">
-      <h3>云同步 <button id="sync-close">完成</button></h3>
-      <div class="sync-sub">记录先加密再上传到你自己的云端，配置好后在每台设备上自动同步（打开 App 自动同步、定时同步、切回前台也同步）。云端只有密文，别人看不到内容。</div>
-      <label>同步服务</label>
-      <select id="sync-svc">
-        <option value="github">GitHub（你已有权限，推荐）</option>
-        <option value="leancloud">LeanCloud（需另开账号，国内直连）</option>
-      </select>
-      <div id="sync-sec-leancloud" hidden>
-        <label>LeanCloud App ID</label>
-        <input id="lc-appid" type="text" autocomplete="off" placeholder="控制台「设置 → 应用凭证」里复制">
-        <label>LeanCloud App Key（客户端密钥）</label>
-        <input id="lc-appkey" type="password" autocomplete="off" placeholder="同一处的 App Key">
-        <label>REST API 地址</label>
-        <input id="lc-api" type="text" autocomplete="off" placeholder="如 https://xxxx.lncldglobal.com/1.1">
-      </div>
-      <div id="sync-sec-github">
-        <label>GitHub 访问令牌（Token，需勾选 gist 权限）</label>
-        <input id="sync-token" type="password" autocomplete="off" placeholder="ghp_ 开头的一串字符">
-      </div>
-      <label>同步口令（用于加密，两台设备必须一致）</label>
-      <input id="sync-pass" type="password" autocomplete="off" placeholder="自定一串口令，留空则不加密">
-      <label>同步仓库 ID（首次留空自动创建；其他设备粘贴同一串 ID）</label>
-      <input id="sync-gist" type="text" autocomplete="off" placeholder="首次留空，其他设备粘贴此 ID">
-      <label class="sync-auto"><input type="checkbox" id="sync-auto" checked> 自动同步（打开 App / 每 3 分钟 / 切回前台时自动执行）</label>
-      <div class="sync-meta">
-        <span>上次同步：<b id="sync-last">从未</b></span>
-        <span id="sync-status" class="sync-status">未连接</span>
-      </div>
-      <button class="sync-run" id="sync-run">立即同步</button>
-      <button class="sync-test" id="sync-test">测试连接</button>
-      <div class="sync-steps" id="sync-steps"></div>
-      <div class="sync-cfg">
-        <b>两台设备快速配置（免手打令牌）</b>
-        <div class="sync-cfg-row">
-          <button id="sync-gen" class="sync-mini">① 生成配置码</button>
-          <button id="sync-copy" class="sync-mini" hidden>复制</button>
-        </div>
-        <textarea id="sync-code-out" readonly rows="2" hidden placeholder="生成的配置码会显示在这里"></textarea>
-        <div id="sync-code-url" hidden></div>
-        <div class="sync-cfg-row" style="margin-top:12px">
-          <input id="sync-code-in" type="text" placeholder="② 在另一台设备粘贴收到的配置码">
-          <button id="sync-import" class="sync-mini" style="flex:0 0 72px">导入</button>
-        </div>
-      </div>
-    </div>
-  </div>
+  <!-- 云同步已统一移入「我」页的独立栏目 -->
 
   <div class="toast" id="toast"></div>
 
@@ -757,19 +779,18 @@ async function imgUrl(id){
 function blobToDataURL(blob){ return new Promise(res => { const r = new FileReader(); r.onload = () => res(r.result); r.readAsDataURL(blob); }); }
 function dataURLToBlob(u){ const [head, b64] = u.split(","); const mime = head.match(/:(.*?);/)[1]; const bin = atob(b64); return new Blob([new Uint8Array([...bin].map(c=>c.charCodeAt(0)))], {type:mime}); }
 
+function mediaErr(el){ const b=el&&el.parentElement&&el.parentElement.querySelector('.live-badge'); if(b){ b.textContent='格式不支持'; b.classList.add('bad'); } }
 async function mediaHtml(id, cls){
   const rec = await dbGet("images", id);
   if(!rec) return "";
   if(rec.videoId){
     const su = await imgUrl(id);
     const vu = await imgUrl(rec.videoId);
-    const vt = rec.videoType || "video/mp4";
-    return `<div class="media-item" data-mid="${id}"><div class="live-wrap"><video class="xlj-media ${cls||''}" autoplay muted loop playsinline preload="metadata" poster="${su}"><source src="${vu}" type="${vt}"></video><span class="live-badge">实况</span></div></div>`;
+    return `<div class="media-item" data-mid="${id}"><div class="live-wrap"><video class="xlj-media ${cls||''}" autoplay muted loop playsinline preload="auto" poster="${su}" src="${vu}" onerror="mediaErr(this)"></video><span class="live-badge">实况</span></div></div>`;
   }
   if(rec.kind==="video"){
     const vu = await imgUrl(id);
-    const vt = rec.videoType || "video/mp4";
-    return `<div class="media-item" data-mid="${id}"><div class="live-wrap"><video class="xlj-media ${cls||''}" controls playsinline preload="metadata"><source src="${vu}" type="${vt}"></video><span class="live-badge vid">视频</span></div></div>`;
+    return `<div class="media-item" data-mid="${id}"><div class="live-wrap"><video class="xlj-media ${cls||''}" autoplay muted loop playsinline preload="auto" src="${vu}" onerror="mediaErr(this)"></video><span class="live-badge">实况</span></div></div>`;
   }
   const u = await imgUrl(id);
   return `<div class="media-item" data-mid="${id}"><img src="${u}" alt="" class="${cls||''}"></div>`;
@@ -808,9 +829,14 @@ async function hydrateImages(container){
     const id=img.dataset.xlj; const rec=await dbGet("images",id);
     if(!rec){ img.remove(); continue; }
     if(rec.videoId){
-      const su=await imgUrl(id), vu=await imgUrl(rec.videoId), vt=rec.videoType||"video/mp4";
+      const su=await imgUrl(id), vu=await imgUrl(rec.videoId);
       const wrap=document.createElement('div'); wrap.className='live-wrap entry-img'; wrap.style.flex='none';
-      wrap.innerHTML=`<video class="xlj-media" autoplay muted loop playsinline poster="${su}"><source src="${vu}" type="${vt}"></video><span class="live-badge">实况</span>`;
+      wrap.innerHTML=`<video class="xlj-media" autoplay muted loop playsinline preload="auto" poster="${su}" src="${vu}" onerror="mediaErr(this)"></video><span class="live-badge">实况</span>`;
+      img.replaceWith(wrap);
+    } else if(rec.kind==="video"){
+      const vu=await imgUrl(id);
+      const wrap=document.createElement('div'); wrap.className='live-wrap entry-img'; wrap.style.flex='none';
+      wrap.innerHTML=`<video class="xlj-media" autoplay muted loop playsinline preload="auto" src="${vu}" onerror="mediaErr(this)"></video><span class="live-badge">实况</span>`;
       img.replaceWith(wrap);
     } else {
       const u=await imgUrl(id); if(u) img.src=u; else img.remove();
@@ -820,8 +846,8 @@ async function hydrateImages(container){
 async function openMedia(id){
   const rec=await dbGet("images",id); if(!rec) return;
   const el=$("media-lightbox-inner"); if(!el) return;
-  if(rec.videoId){ const su=await imgUrl(id), vu=await imgUrl(rec.videoId), vt=rec.videoType||"video/mp4"; el.innerHTML=`<div style="position:relative"><video autoplay muted loop playsinline controls style="max-width:100vw;max-height:100vh;border-radius:12px;display:block" poster="${su}"><source src="${vu}" type="${vt}"></video><span class="live-badge">实况</span></div>`; }
-  else if(rec.kind==="video"){ const vu=await imgUrl(id), vt=rec.videoType||"video/mp4"; el.innerHTML=`<video autoplay controls playsinline style="max-width:100vw;max-height:100vh;border-radius:12px;display:block"><source src="${vu}" type="${vt}"></video>`; }
+  if(rec.videoId){ const su=await imgUrl(id), vu=await imgUrl(rec.videoId); el.innerHTML=`<div style="position:relative"><video autoplay muted loop playsinline controls style="max-width:100vw;max-height:100vh;border-radius:12px;display:block" poster="${su}" src="${vu}" onerror="mediaErr(this)"></video><span class="live-badge">实况</span></div>`; }
+  else if(rec.kind==="video"){ const vu=await imgUrl(id); el.innerHTML=`<video autoplay muted loop playsinline controls style="max-width:100vw;max-height:100vh;border-radius:12px;display:block" src="${vu}" onerror="mediaErr(this)"></video>`; }
   else { const u=await imgUrl(id); el.innerHTML=`<img src="${u}" alt="" style="max-width:100vw;max-height:100vh;border-radius:12px;display:block">`; }
   $("media-lightbox").classList.add("show");
 }
@@ -1276,35 +1302,37 @@ function cancelEditor(){ edEditId=null; if(edBook){ backToBook(); } else { go('h
 async function addImages(files){
   const left=MAX_IMG-edImgIds.length; if(left<=0){ toast(`最多 ${MAX_IMG} 个图片/视频`); return; }
   const stem=s=>(s||"").replace(/\.[^.]+$/,"");
-  const imgMap={};
-  let added=0, vAdded=0, skipped=0;
-  for(const f of files){
-    if(!f.type.startsWith('image/')) continue;
-    if(added>=left) continue;
+  const isImg=f=>/^image\//.test(f.type||"")||/\.(jpe?g|png|gif|webp|heic|heif|avif|bmp)$/i.test(f.name||"");
+  const isVid=f=>!/^image\//.test(f.type||"")&&(/^video\//.test(f.type||"")||/\.(mov|mp4|webm|m4v|3gp)$/i.test(f.name||""));
+  const imgs=files.filter(isImg), vids=files.filter(isVid);
+  let added=0, live=0, skipped=0;
+  const imgMap={}, usedStill=new Set();
+  for(const f of imgs){
+    if(added>=left){ skipped++; continue; }
     const id=uid(); const blob=await compressImage(f);
     await dbPut('images',{id,blob,name:f.name,addedAt:Date.now()});
     edImgIds.push(id); imgMap[stem(f.name)]=id; added++;
   }
-  for(const f of files){
-    const isVid=/^video\//.test(f.type)||/\.(mov|mp4|webm|m4v|3gp)$/i.test(f.name||"");
-    if(!isVid) continue;
-    if(added>=left){ skipped++; continue; }
+  for(const f of vids){
     const vid=uid();
     const vrec={id:vid,blob:f,kind:'video',name:f.name,addedAt:Date.now(),videoType:f.type||'video/mp4'};
-    const s=stem(f.name);
-    const stillId=imgMap[s];
+    let stillId=imgMap[stem(f.name)];
+    if(stillId&&usedStill.has(stillId)) stillId=null;
+    // 只选了「1 张照片 + 视频」时，文件名不同也配成实况（手机/相机常重命名为不同名）
+    if(!stillId&&imgs.length===1&&!usedStill.size) stillId=Object.values(imgMap)[0]||null;
     if(stillId){
       const still=await dbGet('images',stillId);
-      if(still){ still.videoId=vid; await dbPut('images',still); }
-      vrec.stillId=stillId; await dbPut('images',vrec); vAdded++;
-    } else {
-      await dbPut('images',vrec); edImgIds.push(vid); added++;
+      if(still&&!still.videoId){
+        still.videoId=vid; await dbPut('images',still);
+        vrec.stillId=stillId; await dbPut('images',vrec);
+        usedStill.add(stillId); live++; continue;
+      }
     }
+    if(added>=left){ skipped++; continue; }
+    await dbPut('images',vrec); edImgIds.push(vid); added++;
   }
   renderEdImgs();
-  if(vAdded>0) toast(`已添加 ${added} 个媒体，其中 ${vAdded} 个实况`);
-  else if(skipped>0) toast(`已达上限 ${MAX_IMG} 个，跳过 ${skipped} 个`);
-  else if(added<files.length) toast(`最多 ${MAX_IMG} 个，已添加 ${added} 个`);
+  toast(`已添加 ${added+live} 个媒体${live?`，${live} 个实况`:''}${skipped?`（跳过 ${skipped} 个）`:''}`);
 }
 async function renderEdImgs(){
   const box=$('ed-imgs'); if(!box) return; box.innerHTML='';
@@ -1391,8 +1419,10 @@ async function renderProfile(){
   $('pf-words').textContent=words.toLocaleString();
   $('pf-books').textContent=books.length;
   const cfg=getSyncCfg(); const ready=isSyncReady(cfg);
-  $('pf-sync-state').textContent=ready?"已连接 ›":"未连接 ›";
+  $('pf-sync-state').textContent=ready?"已连接":"未连接";
   $('pf-sync-state').classList.toggle('on',ready);
+  $('pf-sync-last').textContent=cfg.last?("上次同步 "+new Date(cfg.last).toLocaleString("zh-CN",{hour12:false,month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"})):(ready?"点开可连接另一台设备":"点开连接设备");
+  applyCfgToForm(cfg); renderSyncMeta();
 }
 
 /* ================= 备份 / 恢复 ================= */
@@ -1459,9 +1489,11 @@ async function doSync(){ if(syncing)return; const cfg=readSyncForm(); saveSyncCf
 function readSyncForm(){ const cfg=getSyncCfg(); cfg.svc=$("sync-svc").value; cfg.token=$("sync-token").value.trim(); cfg.appId=$("lc-appid").value.trim(); cfg.appKey=$("lc-appkey").value.trim(); cfg.api=$("lc-api").value.trim(); cfg.pass=$("sync-pass").value; cfg.gist=$("sync-gist").value.trim(); cfg.auto=$("sync-auto").checked; return cfg; }
 function applyCfgToForm(cfg){ $("sync-svc").value=cfg.svc||(cfg.token?"github":"leancloud"); $("sync-token").value=cfg.token||""; $("lc-appid").value=cfg.appId||""; $("lc-appkey").value=cfg.appKey||""; $("lc-api").value=cfg.api||""; $("sync-pass").value=cfg.pass||""; $("sync-gist").value=cfg.gist||""; $("sync-auto").checked=(cfg.auto!==false); toggleSyncSec(); }
 function toggleSyncSec(){ const svc=$("sync-svc").value; $("sync-sec-leancloud").hidden=(svc!=="leancloud"); $("sync-sec-github").hidden=(svc!=="github"); renderSyncSteps(svc); }
-function renderSyncSteps(svc){ const el=$("sync-steps"); if(svc==="github"){ el.innerHTML="<b>获取令牌（约 2 分钟，只需一次）：</b><br>1. 登录 github.com → 右上角头像 → Settings；<br>2. 左侧最底 Developer settings → Personal access tokens → Tokens (classic)；<br>3. Generate new token (classic)，备注随便填，勾选 <b>gist</b>，复制 ghp_ 开头的字符粘贴到上面。<br><b>日常使用：</b>在一台设备记录后，到另一台设备点「立即同步」即可拿到最新内容；删除过的记录不会复活。"; } else { el.innerHTML="<b>开通 LeanCloud（约 3 分钟，只需一次）：</b><br>1. 打开 leancloud.cn 注册并登录；<br>2. 创建一个应用（国内节点需实名，不想实名可选「国际版」节点，数据在境外但国内能直连）；<br>3. 进入该应用「设置 → 应用凭证」，复制 <b>App ID</b>、<b>App Key</b> 和 <b>REST API 地址</b> 填到上面；<br>4. 不用预先建表，首次同步会自动创建。<br><b>日常使用：</b>一台设备记录后，另一台点「立即同步」即可双向同步。"; } }
-function openSyncModal(){ const cfg=getSyncCfg(); applyCfgToForm(cfg); renderSyncMeta(); $("sync-modal").hidden=false; requestAnimationFrame(()=>$("sync-modal").classList.add("show")); }
-function closeSyncModal(){ $("sync-modal").classList.remove("show"); setTimeout(()=>$("sync-modal").hidden=true,200); }
+function renderSyncSteps(svc){ const el=$("sync-steps"); if(!el)return; el.textContent = svc==="github" ? "令牌在 GitHub → 头像 → Settings → Developer settings → Tokens (classic) 生成，勾选 gist。" : "在 LeanCloud 控制台创建应用，复制 App ID / App Key / REST API 地址填入上方。"; }
+function openSyncSection(){ const b=$("sync-card-body"); if(!b)return; b.hidden=false; const a=$("sync-card-arrow"); if(a)a.classList.add("open"); const adv=$("sync-adv"); if(adv)adv.open=true; setTimeout(()=>{ const c=$("sync-card"); if(c&&c.scrollIntoView)c.scrollIntoView({behavior:"smooth",block:"center"}); },80); }
+function toggleSyncCard(){ const b=$("sync-card-body"); if(!b)return; b.hidden=!b.hidden; const a=$("sync-card-arrow"); if(a)a.classList.toggle("open",!b.hidden); }
+function openSyncModal(){ go('profile'); openSyncSection(); }
+function closeSyncModal(){ const b=$("sync-card-body"); if(b)b.hidden=true; const a=$("sync-card-arrow"); if(a)a.classList.remove("open"); }
 function renderSyncMeta(){ const cfg=getSyncCfg(); $("sync-last").textContent=cfg.last?new Date(cfg.last).toLocaleString("zh-CN",{hour12:false}):"从未"; }
 function setSyncStatus(state,text){ const el=$("sync-status"); if(!el)return; el.className="sync-status"+(state?" "+state:""); el.textContent=text; }
 async function testConnection(){ const cfg=readSyncForm(); if(cfg.svc==="github"){ if(!cfg.token){ setSyncStatus("bad","未填令牌"); return; } setSyncStatus("busy","连接中…"); try{ const res=await fetch("https://api.github.com/gists/"+(cfg.gist||"e361e13b9212eecaf981394d9cf802e8"),{headers:{"Authorization":"Bearer "+cfg.token,"Accept":"application/vnd.github+json"}}); if(res.status===401)setSyncStatus("bad","令牌无效/过期"); else if(res.ok||res.status===404)setSyncStatus("ok","连接正常"); else setSyncStatus("bad","GitHub 返回 "+res.status); }catch(e){ setSyncStatus("bad","连不上（网络/被墙）"); } } else { if(!cfg.appId||!cfg.appKey||!cfg.api){ setSyncStatus("bad","未填 LeanCloud"); return; } setSyncStatus("busy","连接中…"); try{ const res=await fetch(cfg.api.replace(/\/$/,"")+"/classes/XLJSync?limit=1",{headers:{"X-LC-Id":cfg.appId,"X-LC-Key":cfg.appKey,"Content-Type":"application/json"}}); if(res.ok)setSyncStatus("ok","连接正常"); else setSyncStatus("bad","LeanCloud 返回 "+res.status); }catch(e){ setSyncStatus("bad","连不上"); } } }
@@ -1480,8 +1512,6 @@ let _autoBusy=false;
 async function autoSync(){ if(_autoBusy||syncing)return; const cfg=getSyncCfg(); if(!isSyncReady(cfg))return; _autoBusy=true; try{ await doSync(); }catch(e){ } finally{ _autoBusy=false; } }
 
 /* ---- 云同步事件绑定 ---- */
-$("sync-close").onclick=closeSyncModal;
-$("sync-modal").onclick=e=>{ if(e.target.id==="sync-modal")closeSyncModal(); };
 $("sync-svc").addEventListener("change",()=>{ toggleSyncSec(); saveSyncFromForm(); });
 $("sync-token").addEventListener("change",saveSyncFromForm);
 $("lc-appid").addEventListener("change",saveSyncFromForm);
