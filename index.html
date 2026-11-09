@@ -130,9 +130,6 @@
   .media-lightbox.show{display:flex;}
   .media-lightbox-inner{position:relative;max-width:100%;max-height:100%;}
   .media-lightbox-inner video,.media-lightbox-inner img{max-width:100vw;max-height:100vh;width:auto;height:auto;border-radius:12px;display:block;}
-  .ed-hint{font-size:11px;color:var(--text2);line-height:1.5;margin-top:8px;padding:0 2px;}
-  .ed-hint b{color:var(--primary);font-weight:700;}
-  .tool-chip.live{background:#ECE6F8;color:#7A5FB0;font-weight:700;}
   .feed-comments{margin-top:12px;}
   .feed-comments .comment-list{gap:8px;margin-top:0;}
   .feed-comments .comment-input{margin-top:10px;}
@@ -497,15 +494,12 @@
     </div>
     <textarea class="editor-area" id="ed-content" placeholder="今天发生了什么？&#10;像发朋友圈一样，随手记下来..."></textarea>
     <div class="ed-imgs" id="ed-imgs"></div>
-    <div class="ed-hint"><b>◉ 实况</b>：相册里的动态照片直接选就有动态。iPhone 实况请点「◉ 实况」选视频；若列表里找不到，先在照片 App 对实况点「分享 → 存储为视频」，再回来选它。上传后会自动循环播放并标「实况」</div>
     <div class="ed-tools">
-      <div class="tool-chip live" onclick="document.getElementById('ed-live-file').click()">◉ 实况</div>
-      <div class="tool-chip" onclick="document.getElementById('ed-img-file').click()">📷 图片</div>
+      <div class="tool-chip" onclick="document.getElementById('ed-img-file').click()">📷 图片/视频</div>
       <div class="tool-chip" onclick="toast('语音功能即将上线')">🎙 语音</div>
       <div class="tool-chip" onclick="toast('AI 润色即将上线')">✨ AI 润色</div>
     </div>
-    <input type="file" id="ed-img-file" accept="image/*,video/*" multiple hidden>
-    <input type="file" id="ed-live-file" accept="video/*" multiple hidden>
+    <input type="file" id="ed-img-file" accept="image/*,video/mp4,video/quicktime,.mov,.mp4,.m4v" multiple hidden>
   </section>
 
   <input type="file" id="cover-file" accept="image/*" hidden>
@@ -1591,7 +1585,6 @@ $("sync-gen").onclick=genSyncCode;
 $("sync-copy").onclick=copySyncCode;
 $("sync-import").onclick=importSyncCode;
 $("ed-img-file").addEventListener("change",e=>{ if(e.target.files&&e.target.files.length) addImages([...e.target.files]); e.target.value=""; });
-$("ed-live-file").addEventListener("change",e=>{ if(e.target.files&&e.target.files.length) addImages([...e.target.files]); e.target.value=""; });
 $("cover-file").addEventListener("change",e=>{ const f=e.target.files&&e.target.files[0]; if(f) setCover(f); e.target.value=""; });
 $("import-file").addEventListener("change",e=>{ if(e.target.files&&e.target.files[0]) importBackup(e.target.files[0]); e.target.value=""; });
 document.addEventListener("click",e=>{ const m=e.target.closest&&e.target.closest("[data-mid]"); if(m){ e.stopPropagation(); e.preventDefault(); openMedia(m.getAttribute("data-mid")); } }, true);
