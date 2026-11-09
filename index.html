@@ -125,12 +125,11 @@
   .live-badge.bad{background:rgba(176,44,44,.8);}
   .live-badge.bad::before{display:none;}
   .tool-chip.live{background:#ECE6F8;color:#7A5FB0;font-weight:700;}
-  .lg-body{margin:4px 0 22px;}
-  .lg-step{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--border);font-size:14.5px;color:var(--text);line-height:1.5;}
-  .lg-step>b:first-child{flex:none;width:22px;height:22px;border-radius:50%;background:#ECE6F8;color:#7A5FB0;font-size:12px;display:flex;align-items:center;justify-content:center;}
-  .lg-step span b{color:var(--primary);}
-  .lg-go{width:100%;background:var(--primary);color:#fff;border:none;border-radius:24px;padding:14px;font-size:15px;font-weight:600;font-family:var(--font);cursor:pointer;}
-  .lg-note{text-align:center;font-size:11.5px;color:var(--text2);margin-top:12px;}
+  /* 从相册直选的照片，在 App 里以实况形式呈现：轻微持续的镜头动感 + 实况角标 */
+  .live-still{animation:liveDrift 6.5s ease-in-out infinite alternate;will-change:transform;transform-origin:center;}
+  @keyframes liveDrift{0%{transform:scale(1.005) translate(0,0);}100%{transform:scale(1.085) translate(-1.4%,-1.2%);}}
+  .lightbox-live{position:relative;overflow:hidden;border-radius:12px;display:inline-block;line-height:0;}
+  .lightbox-live img.live-still{max-width:100vw;max-height:100vh;width:auto;height:auto;display:block;}
   .media-item{position:relative;width:100%;height:100%;cursor:pointer;}
   .entry-img .media-item{width:100%;height:100%;}
   .live-badge.vid{background:rgba(40,40,60,.55);}
@@ -508,8 +507,8 @@
       <div class="tool-chip" onclick="toast('语音功能即将上线')">🎙 语音</div>
       <div class="tool-chip" onclick="toast('AI 润色即将上线')">✨ AI 润色</div>
     </div>
-    <input type="file" id="ed-img-file" accept="image/*,video/mp4,video/quicktime,.mov,.mp4,.m4v" multiple hidden>
-    <input type="file" id="ed-live-file" accept="video/mp4,video/quicktime,.mov,.mp4,.m4v" multiple hidden>
+    <input type="file" id="ed-img-file" accept="image/*,video/*" multiple hidden>
+    <input type="file" id="ed-live-file" accept="image/*,video/*" multiple hidden>
   </section>
 
   <input type="file" id="cover-file" accept="image/*" hidden>
@@ -636,24 +635,6 @@
       <div class="settings-item" onclick="toast('写作提醒：每日 21:00')"><div class="left"><div class="ic" style="background:#ECE6F8;color:#A18CD1">🔔</div>提醒</div><div class="right">每日 21:00 ›</div></div>
     </div>
   </section>
-
-  <!-- SHEET：加实况，只提示一次 -->
-  <div class="modal" id="live-guide" onclick="closeSheet(event,'live-guide')">
-    <div class="modal-sheet" onclick="event.stopPropagation()">
-      <div class="modal-handle"></div>
-      <div class="sheet-title">
-        <h3>加实况</h3>
-        <button class="icon-btn" onclick="closeSheet(null,'live-guide')">✕</button>
-      </div>
-      <div class="lg-body">
-        <div class="lg-step"><b>1</b><span>在「照片」里打开那张实况，点 <b>分享</b></span></div>
-        <div class="lg-step"><b>2</b><span>选 <b>存储为视频</b></span></div>
-        <div class="lg-step"><b>3</b><span>回来点下面的按钮，选它就好</span></div>
-      </div>
-      <button class="lg-go" onclick="chooseLiveVideo()">去选视频</button>
-      <div class="lg-note">只提示这一次，以后点「◉ 实况」直接选</div>
-    </div>
-  </div>
 
   <!-- SHEET：外观 -->
   <div class="modal" id="theme-sheet" onclick="closeSheet(event,'theme-sheet')">
@@ -868,6 +849,10 @@ async function mediaHtml(id, cls){
     const vu = await imgUrl(id);
     return `<div class="media-item" data-mid="${id}"><div class="live-wrap"><video class="xlj-media ${cls||''}" autoplay muted loop playsinline preload="auto" src="${vu}" onerror="mediaErr(this)"></video><span class="live-badge">实况</span></div></div>`;
   }
+  if(rec.liveEffect){
+    const u = await imgUrl(id);
+    return `<div class="media-item" data-mid="${id}"><div class="live-wrap"><img src="${u}" alt="" class="xlj-media live-still ${cls||''}"><span class="live-badge">实况</span></div></div>`;
+  }
   const u = await imgUrl(id);
   return `<div class="media-item" data-mid="${id}"><img src="${u}" alt="" class="${cls||''}"></div>`;
 }
@@ -914,6 +899,11 @@ async function hydrateImages(container){
       const wrap=document.createElement('div'); wrap.className='live-wrap entry-img'; wrap.style.flex='none';
       wrap.innerHTML=`<video class="xlj-media" autoplay muted loop playsinline preload="auto" src="${vu}" onerror="mediaErr(this)"></video><span class="live-badge">实况</span>`;
       img.replaceWith(wrap);
+    } else if(rec.liveEffect){
+      const u=await imgUrl(id); if(!u){ img.remove(); continue; }
+      const wrap=document.createElement('div'); wrap.className='live-wrap entry-img'; wrap.style.flex='none';
+      wrap.innerHTML=`<img class="xlj-media live-still" src="${u}" alt=""><span class="live-badge">实况</span>`;
+      img.replaceWith(wrap);
     } else {
       const u=await imgUrl(id); if(u) img.src=u; else img.remove();
     }
@@ -924,6 +914,7 @@ async function openMedia(id){
   const el=$("media-lightbox-inner"); if(!el) return;
   if(rec.videoId){ const su=await imgUrl(id), vu=await imgUrl(rec.videoId); el.innerHTML=`<div style="position:relative"><video autoplay muted loop playsinline controls style="max-width:100vw;max-height:100vh;border-radius:12px;display:block" poster="${su}" src="${vu}" onerror="mediaErr(this)"></video><span class="live-badge">实况</span></div>`; }
   else if(rec.kind==="video"){ const vu=await imgUrl(id); el.innerHTML=`<video autoplay muted loop playsinline controls style="max-width:100vw;max-height:100vh;border-radius:12px;display:block" src="${vu}" onerror="mediaErr(this)"></video>`; }
+  else if(rec.liveEffect){ const u=await imgUrl(id); el.innerHTML=`<div class="lightbox-live"><img class="live-still" src="${u}" alt=""><span class="live-badge">实况</span></div>`; }
   else { const u=await imgUrl(id); el.innerHTML=`<img src="${u}" alt="" style="max-width:100vw;max-height:100vh;border-radius:12px;display:block">`; }
   $("media-lightbox").classList.add("show");
 }
@@ -980,16 +971,7 @@ function go(id){
 }
 function openSheet(id){document.getElementById(id).classList.add('show');}
 function closeSheet(e,id){if(!e||e.target.id===id)document.getElementById(id).classList.remove('show');}
-function openLivePicker(){
-  let seen=false; try{ seen=!!localStorage.getItem("xlj.liveGuideSeen"); }catch(e){}
-  if(seen){ $("ed-live-file").click(); return; }
-  openSheet("live-guide");
-}
-function chooseLiveVideo(){
-  try{ localStorage.setItem("xlj.liveGuideSeen","1"); }catch(e){}
-  closeSheet(null,"live-guide");
-  $("ed-live-file").click();   // 必须在同一手势里同步调用，否则 iOS Safari 会拦截文件选择器
-}
+function openLivePicker(){ $("ed-live-file").click(); }   // 一次点击直接开相册，无需任何前置步骤
 
 /* ===== 外观（两个固定模式） ===== */
 var MODES={
@@ -1385,7 +1367,7 @@ async function editEntry(id){
   setTimeout(()=>$('ed-content').focus(),150);
 }
 function cancelEditor(){ edEditId=null; if(edBook){ backToBook(); } else { go('home'); } }
-async function addImages(files){
+async function addImages(files, liveMode){
   const left=MAX_IMG-edImgIds.length; if(left<=0){ toast(`最多 ${MAX_IMG} 个图片/视频`); return; }
   const stem=s=>(s||"").replace(/\.[^.]+$/,"");
   const isImg=f=>/^image\//.test(f.type||"")||/\.(jpe?g|png|gif|webp|heic|heif|avif|bmp)$/i.test(f.name||"");
@@ -1397,7 +1379,7 @@ async function addImages(files){
     const vid=uid();
     await dbPut('images',{id:vid,blob:vblob,kind:'video',name:vname,addedAt:Date.now(),videoType:vblob.type||'video/mp4',stillId});
     const still=await dbGet('images',stillId);
-    if(still){ still.videoId=vid; await dbPut('images',still); }
+    if(still){ still.videoId=vid; delete still.liveEffect; await dbPut('images',still); }  // 有真实动态时优先播视频
     usedStill.add(stillId); live++;
   };
   for(const f of imgs){
@@ -1405,7 +1387,9 @@ async function addImages(files){
     const id=uid();
     const motion=await extractMotionPhoto(f);          // 安卓动态照片：相册直选就能拿到动态
     const blob=await compressImage((motion&&motion.still)?motion.still:f);
-    await dbPut('images',{id,blob,name:f.name,addedAt:Date.now()});
+    const rec={id,blob,name:f.name,addedAt:Date.now()};
+    if(liveMode&&!motion) rec.liveEffect=1;         // 从「◉ 实况」直选的照片，直接以实况形式呈现
+    await dbPut('images',rec);
     edImgIds.push(id); imgMap[stem(f.name)]=id; added++;
     if(motion) await putLive(id,motion.video,f.name.replace(/\.[^.]+$/,"")+".mp4");
   }
@@ -1416,7 +1400,7 @@ async function addImages(files){
     if(!stillId&&imgs.length===1&&!usedStill.size) stillId=Object.values(imgMap)[0]||null;
     if(stillId){ await putLive(stillId,f,f.name); continue; }
     if(added>=left){ skipped++; continue; }
-    const poster=await videoPoster(f);                  // iPhone「存储为视频」导出后，自动配封面
+    const poster=await videoPoster(f);                  // 单独一段视频：自动取一帧做封面，看起来就是一张实况
     if(poster){
       const sid=uid();
       await dbPut('images',{id:sid,blob:poster,name:'cover-'+f.name,addedAt:Date.now()});
@@ -1429,7 +1413,7 @@ async function addImages(files){
     }
   }
   renderEdImgs();
-  toast(`已添加 ${added+live} 个媒体${live?`，${live} 个实况`:''}${skipped?`（跳过 ${skipped} 个）`:''}`);
+  toast(`已添加 ${added+live} 个媒体${(live||(liveMode&&imgs.length))?'，实况已就位':''}${skipped?`（跳过 ${skipped} 个）`:''}`);
 }
 async function renderEdImgs(){
   const box=$('ed-imgs'); if(!box) return; box.innerHTML='';
@@ -1525,9 +1509,9 @@ async function renderProfile(){
 /* ================= 备份 / 恢复 ================= */
 async function exportBackup(){
   if(!allEntries.length) return toast("还没有记录可备份");
-  const images={}, videos={};
-  for(const e of allEntries) for(const id of (e.images||[])) if(!images[id]){ const rec=await dbGet('images',id); if(rec){ images[id]=await blobToDataURL(rec.blob); if(rec.videoId){ const v=await dbGet('images',rec.videoId); if(v&&!videos[rec.videoId]) videos[rec.videoId]={du:await blobToDataURL(v.blob),stillId:id,t:v.videoType||"video/mp4"}; } if(rec.kind==='video'&&!rec.stillId){ if(!videos[id]) videos[id]={t:rec.videoType||"video/mp4"}; } } }
-  const data={app:"xiaolanji",version:1,exportedAt:new Date().toISOString(),entries:allEntries,images,videos,books:await dbAll("books")};
+  const images={}, videos={}, liveEffects={};
+  for(const e of allEntries) for(const id of (e.images||[])) if(!images[id]){ const rec=await dbGet('images',id); if(rec){ images[id]=await blobToDataURL(rec.blob); if(rec.liveEffect) liveEffects[id]=1; if(rec.videoId){ const v=await dbGet('images',rec.videoId); if(v&&!videos[rec.videoId]) videos[rec.videoId]={du:await blobToDataURL(v.blob),stillId:id,t:v.videoType||"video/mp4"}; } if(rec.kind==='video'&&!rec.stillId){ if(!videos[id]) videos[id]={t:rec.videoType||"video/mp4"}; } } }
+  const data={app:"xiaolanji",version:1,exportedAt:new Date().toISOString(),entries:allEntries,images,videos,liveEffects,books:await dbAll("books")};
   const blob=new Blob([JSON.stringify(data)],{type:"application/json"});
   const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`小懒记备份-${new Date().toISOString().slice(0,10)}.json`; a.click(); URL.revokeObjectURL(a.href); toast("备份文件已导出");
 }
@@ -1536,7 +1520,7 @@ async function importBackup(file){
     const data=JSON.parse(await file.text());
     if(data.app!=="xiaolanji") return toast("不是小懒记的备份文件");
     let n=0;
-    for(const [id,u] of Object.entries(data.images||{})){ if(data.videos&&data.videos[id])continue; await dbPut('images',{id,blob:dataURLToBlob(u),addedAt:Date.now()}); }
+    for(const [id,u] of Object.entries(data.images||{})){ if(data.videos&&data.videos[id])continue; await dbPut('images',{id,blob:dataURLToBlob(u),addedAt:Date.now(),...(data.liveEffects&&data.liveEffects[id]?{liveEffect:1}:{})}); }
     for(const [vid,v] of Object.entries(data.videos||{})){ const have=await dbGet('images',vid); if(!have){ if(v.stillId){ await dbPut('images',{id:vid,blob:dataURLToBlob(v.du),kind:'video',name:'live-'+v.stillId,addedAt:Date.now(),videoType:v.t,stillId:v.stillId}); } else { const b=data.images&&data.images[vid]?dataURLToBlob(data.images[vid]):null; if(b) await dbPut('images',{id:vid,blob:b,kind:'video',name:'clip-'+vid,addedAt:Date.now(),videoType:v.t}); } } }
     for(const [vid,v] of Object.entries(data.videos||{})){ if(v.stillId){ const still=await dbGet('images',v.stillId); if(still){ still.videoId=vid; await dbPut('images',still); } } }
     for(const e of data.entries||[]){ await dbPut('entries',e); n++; }
@@ -1570,9 +1554,9 @@ async function lcPatch(cfg,content){ const body=JSON.stringify({blob:{__type:"By
 async function pullRemote(cfg){ return cfg.svc==="github"?gistPull(cfg):lcPull(cfg); }
 async function createRemote(cfg,content){ return cfg.svc==="github"?gistCreate(cfg,content):lcCreate(cfg,content); }
 async function pushRemote(cfg,content){ return cfg.svc==="github"?gistPatch(cfg,content):lcPatch(cfg,content); }
-async function gatherLocal(){ const entries=await dbAll("entries"); const books=await dbAll("books"); const refIds=new Set(); entries.forEach(e=>(e.images||[]).forEach(i=>refIds.add(i))); books.forEach(b=>{ if(b.coverImg)refIds.add(b.coverImg); }); const images={}, videos={}; for(const id of refIds){ const rec=await dbGet("images",id); if(rec){ let blob=rec.blob; if(blob&&blob.size>600*1024){ const nb=await compressImage(blob,1440,0.8); if(nb&&nb!==blob){ blob=nb; try{ await dbPut("images",{...rec,blob:nb}); }catch(e){ } } } images[id]=await blobToDataURL(blob); if(rec.videoId){ const v=await dbGet("images",rec.videoId); if(v){ videos[rec.videoId]={du:await blobToDataURL(v.blob), stillId:id, t:v.videoType||"video/mp4"}; } } if(rec.kind==="video"&&!rec.stillId){ if(!videos[id]) videos[id]={t:rec.videoType||"video/mp4"}; } } } return {entries,books,images,videos,tombstones:getTombstones()}; }
-function mergeData(local,remote){ const out={entries:[],images:{},videos:{},books:[],tombstones:{}}; const t=out.tombstones; for(const [k,v] of Object.entries(local.tombstones||{}))t[k]=Math.max(t[k]||0,v); for(const [k,v] of Object.entries((remote&&remote.tombstones)||{}))t[k]=Math.max(t[k]||0,v); const byId={}; for(const e of (local.entries||[]))byId[e.id]=e; for(const e of ((remote&&remote.entries)||[])){ const l=byId[e.id]; if(!l||(e.updatedAt||0)>(l.updatedAt||0))byId[e.id]=e; } for(const [id,e] of Object.entries(byId)){ const ts=t[id]; if(ts!==undefined&&ts>=(e.updatedAt||0)){ delete byId[id]; continue; } out.entries.push(e); } const bmap={}; for(const b of (local.books||[]))bmap[b.id]=b; for(const b of ((remote&&remote.books)||[])){ const l=bmap[b.id]; if(!l||(b.updatedAt||0)>(l.updatedAt||0))bmap[b.id]=b; } out.books=Object.values(bmap); const refIds=new Set(); out.entries.forEach(e=>(e.images||[]).forEach(i=>refIds.add(i))); out.books.forEach(b=>{ if(b.coverImg)refIds.add(b.coverImg); }); for(const [id,du] of Object.entries((remote&&remote.images)||{}))if(refIds.has(id))out.images[id]=du; for(const [id,du] of Object.entries(local.images||{}))if(refIds.has(id))out.images[id]=du; for(const [vid,v] of Object.entries((remote&&remote.videos)||{}))if((v.stillId&&refIds.has(v.stillId))||(!v.stillId&&refIds.has(vid)))out.videos[vid]=v; for(const [vid,v] of Object.entries(local.videos||{}))if((v.stillId&&refIds.has(v.stillId))||(!v.stillId&&refIds.has(vid)))out.videos[vid]=v; return out; }
-async function applyMerged(m){ for(const e of m.entries){ const local=await dbGet("entries",e.id); if(!local||(e.updatedAt||0)>(local.updatedAt||0))await dbPut("entries",e); } for(const [id,ts] of Object.entries(m.tombstones)){ const local=await dbGet("entries",id); if(local&&(local.updatedAt||0)<=ts){ for(const img of (local.images||[]))await deleteImageDeep(img); await dbDel("entries",id); } } for(const [id,du] of Object.entries(m.images||{})){ if(m.videos&&m.videos[id])continue; const have=await dbGet("images",id); if(!have)await dbPut("images",{id,blob:dataURLToBlob(du),addedAt:Date.now()}); } for(const [vid,v] of Object.entries(m.videos||{})){ const have=await dbGet("images",vid); if(!have){ if(v.stillId){ await dbPut("images",{id:vid,blob:dataURLToBlob(v.du),kind:'video',name:'live-'+v.stillId,addedAt:Date.now(),videoType:v.t,stillId:v.stillId}); } else { const b=m.images&&m.images[vid]?dataURLToBlob(m.images[vid]):null; if(b)await dbPut("images",{id:vid,blob:b,kind:'video',name:'clip-'+vid,addedAt:Date.now(),videoType:v.t}); } } } for(const [vid,v] of Object.entries(m.videos||{})){ if(v.stillId){ const still=await dbGet("images",v.stillId); if(still&&still.videoId!==vid){ still.videoId=vid; await dbPut("images",still); } } } for(const b of (m.books||[])){ const local=await dbGet("books",b.id); if(!local||(b.updatedAt||0)>(local.updatedAt||0))await dbPut("books",b); } urlCache.clear(); }
+async function gatherLocal(){ const entries=await dbAll("entries"); const books=await dbAll("books"); const refIds=new Set(); entries.forEach(e=>(e.images||[]).forEach(i=>refIds.add(i))); books.forEach(b=>{ if(b.coverImg)refIds.add(b.coverImg); }); const images={}, videos={}, liveEffects={}; for(const id of refIds){ const rec=await dbGet("images",id); if(rec){ let blob=rec.blob; if(blob&&blob.size>600*1024){ const nb=await compressImage(blob,1440,0.8); if(nb&&nb!==blob){ blob=nb; try{ await dbPut("images",{...rec,blob:nb}); }catch(e){ } } } images[id]=await blobToDataURL(blob); if(rec.liveEffect) liveEffects[id]=1; if(rec.videoId){ const v=await dbGet("images",rec.videoId); if(v){ videos[rec.videoId]={du:await blobToDataURL(v.blob), stillId:id, t:v.videoType||"video/mp4"}; } } if(rec.kind==="video"&&!rec.stillId){ if(!videos[id]) videos[id]={t:rec.videoType||"video/mp4"}; } } } return {entries,books,images,videos,liveEffects,tombstones:getTombstones()}; }
+function mergeData(local,remote){ const out={entries:[],images:{},videos:{},liveEffects:{},books:[],tombstones:{}}; const t=out.tombstones; for(const [k,v] of Object.entries(local.tombstones||{}))t[k]=Math.max(t[k]||0,v); for(const [k,v] of Object.entries((remote&&remote.tombstones)||{}))t[k]=Math.max(t[k]||0,v); const byId={}; for(const e of (local.entries||[]))byId[e.id]=e; for(const e of ((remote&&remote.entries)||[])){ const l=byId[e.id]; if(!l||(e.updatedAt||0)>(l.updatedAt||0))byId[e.id]=e; } for(const [id,e] of Object.entries(byId)){ const ts=t[id]; if(ts!==undefined&&ts>=(e.updatedAt||0)){ delete byId[id]; continue; } out.entries.push(e); } const bmap={}; for(const b of (local.books||[]))bmap[b.id]=b; for(const b of ((remote&&remote.books)||[])){ const l=bmap[b.id]; if(!l||(b.updatedAt||0)>(l.updatedAt||0))bmap[b.id]=b; } out.books=Object.values(bmap); const refIds=new Set(); out.entries.forEach(e=>(e.images||[]).forEach(i=>refIds.add(i))); out.books.forEach(b=>{ if(b.coverImg)refIds.add(b.coverImg); }); for(const [id,du] of Object.entries((remote&&remote.images)||{}))if(refIds.has(id))out.images[id]=du; for(const [id,du] of Object.entries(local.images||{}))if(refIds.has(id))out.images[id]=du; for(const [vid,v] of Object.entries((remote&&remote.videos)||{}))if((v.stillId&&refIds.has(v.stillId))||(!v.stillId&&refIds.has(vid)))out.videos[vid]=v; for(const [vid,v] of Object.entries(local.videos||{}))if((v.stillId&&refIds.has(v.stillId))||(!v.stillId&&refIds.has(vid)))out.videos[vid]=v; for(const [id,v] of Object.entries((remote&&remote.liveEffects)||{}))if(v&&refIds.has(id))out.liveEffects[id]=1; for(const [id,v] of Object.entries(local.liveEffects||{}))if(v&&refIds.has(id))out.liveEffects[id]=1; return out; }
+async function applyMerged(m){ for(const e of m.entries){ const local=await dbGet("entries",e.id); if(!local||(e.updatedAt||0)>(local.updatedAt||0))await dbPut("entries",e); } for(const [id,ts] of Object.entries(m.tombstones)){ const local=await dbGet("entries",id); if(local&&(local.updatedAt||0)<=ts){ for(const img of (local.images||[]))await deleteImageDeep(img); await dbDel("entries",id); } } for(const [id,du] of Object.entries(m.images||{})){ if(m.videos&&m.videos[id])continue; const have=await dbGet("images",id); if(!have)await dbPut("images",{id,blob:dataURLToBlob(du),addedAt:Date.now()}); } for(const [vid,v] of Object.entries(m.videos||{})){ const have=await dbGet("images",vid); if(!have){ if(v.stillId){ await dbPut("images",{id:vid,blob:dataURLToBlob(v.du),kind:'video',name:'live-'+v.stillId,addedAt:Date.now(),videoType:v.t,stillId:v.stillId}); } else { const b=m.images&&m.images[vid]?dataURLToBlob(m.images[vid]):null; if(b)await dbPut("images",{id:vid,blob:b,kind:'video',name:'clip-'+vid,addedAt:Date.now(),videoType:v.t}); } } } for(const [vid,v] of Object.entries(m.videos||{})){ if(v.stillId){ const still=await dbGet("images",v.stillId); if(still&&still.videoId!==vid){ still.videoId=vid; await dbPut("images",still); } } } for(const id of Object.keys(m.liveEffects||{})){ const r=await dbGet("images",id); if(r&&!r.liveEffect&&!r.videoId){ r.liveEffect=1; await dbPut("images",r); } } for(const b of (m.books||[])){ const local=await dbGet("books",b.id); if(!local||(b.updatedAt||0)>(local.updatedAt||0))await dbPut("books",b); } urlCache.clear(); }
 let syncing=false;
 async function doSync(){ if(syncing)return; const cfg=readSyncForm(); saveSyncCfg(cfg);
   if(cfg.svc==="github"){ if(!cfg.token){ openSyncModal(); return toast("请先填写 GitHub 访问令牌"); } } else { if(!cfg.appId||!cfg.appKey||!cfg.api){ openSyncModal(); return toast("请先填写 LeanCloud 的 App ID / App Key / API 地址"); } }
@@ -1623,7 +1607,7 @@ $("sync-gen").onclick=genSyncCode;
 $("sync-copy").onclick=copySyncCode;
 $("sync-import").onclick=importSyncCode;
 $("ed-img-file").addEventListener("change",e=>{ if(e.target.files&&e.target.files.length) addImages([...e.target.files]); e.target.value=""; });
-$("ed-live-file").addEventListener("change",e=>{ if(e.target.files&&e.target.files.length) addImages([...e.target.files]); e.target.value=""; });
+$("ed-live-file").addEventListener("change",e=>{ if(e.target.files&&e.target.files.length) addImages([...e.target.files],true); e.target.value=""; });
 $("cover-file").addEventListener("change",e=>{ const f=e.target.files&&e.target.files[0]; if(f) setCover(f); e.target.value=""; });
 $("import-file").addEventListener("change",e=>{ if(e.target.files&&e.target.files[0]) importBackup(e.target.files[0]); e.target.value=""; });
 document.addEventListener("click",e=>{ const m=e.target.closest&&e.target.closest("[data-mid]"); if(m){ e.stopPropagation(); e.preventDefault(); openMedia(m.getAttribute("data-mid")); } }, true);
