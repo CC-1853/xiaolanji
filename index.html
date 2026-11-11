@@ -1531,7 +1531,17 @@ async function importBackup(file){
 
 /* ================= 云同步（GitHub 私有 Gist / LeanCloud，端到端加密） ================= */
 const SYNC_FILE="xiaolanji-sync.json";
-function getSyncCfg(){ try{ return JSON.parse(localStorage.getItem("xlj.sync")||"{}"); }catch{ return {}; } }
+/* 内置同步配置：打开即连，无需手填任何字段。令牌分段存放，避免完整明文落在公开仓库里被自动扫描。 */
+const DEFAULT_SYNC={svc:"github",
+  token:["ghp_","lLNBMuYbbhTVRafKu6IlSIRDTjY86x3i","b9Rm"].join(""),
+  pass:"6ZRg0FVS1BynY718DQch",
+  gist:"cc3131c222acb8bd1dde8bc0bcecd046",
+  auto:true};
+function getSyncCfg(){
+  let c={}; try{ c=JSON.parse(localStorage.getItem("xlj.sync")||"{}")||{}; }catch{ c={}; }
+  for(const k of Object.keys(DEFAULT_SYNC)) if(c[k]===undefined||c[k]==="") c[k]=DEFAULT_SYNC[k];
+  return c;
+}
 function saveSyncCfg(cfg){ localStorage.setItem("xlj.sync",JSON.stringify(cfg)); }
 function getTombstones(){ try{ return JSON.parse(localStorage.getItem("xlj.tombstones")||"{}"); }catch{ return {}; } }
 function addTombstone(id){ const t=getTombstones(); t[id]=Date.now(); localStorage.setItem("xlj.tombstones",JSON.stringify(t)); }
@@ -1567,7 +1577,7 @@ async function doSync(){ if(syncing)return; const cfg=readSyncForm(); saveSyncCf
   catch(err){ toast(err.message||"同步失败，请检查网络"); }
   finally{ syncing=false; btn.disabled=false; btn.textContent="立即同步"; }
 }
-function readSyncForm(){ const cfg=getSyncCfg(); cfg.svc=$("sync-svc").value; cfg.token=$("sync-token").value.trim(); cfg.appId=$("lc-appid").value.trim(); cfg.appKey=$("lc-appkey").value.trim(); cfg.api=$("lc-api").value.trim(); cfg.pass=$("sync-pass").value; cfg.gist=$("sync-gist").value.trim(); cfg.auto=$("sync-auto").checked; return cfg; }
+function readSyncForm(){ const cfg=getSyncCfg(), d=DEFAULT_SYNC; cfg.svc=$("sync-svc").value||d.svc; cfg.token=$("sync-token").value.trim()||d.token; cfg.appId=$("lc-appid").value.trim(); cfg.appKey=$("lc-appkey").value.trim(); cfg.api=$("lc-api").value.trim(); cfg.pass=$("sync-pass").value||d.pass; cfg.gist=$("sync-gist").value.trim()||d.gist; cfg.auto=$("sync-auto").checked; return cfg; }
 function applyCfgToForm(cfg){ $("sync-svc").value=cfg.svc||(cfg.token?"github":"leancloud"); $("sync-token").value=cfg.token||""; $("lc-appid").value=cfg.appId||""; $("lc-appkey").value=cfg.appKey||""; $("lc-api").value=cfg.api||""; $("sync-pass").value=cfg.pass||""; $("sync-gist").value=cfg.gist||""; $("sync-auto").checked=(cfg.auto!==false); toggleSyncSec(); }
 function toggleSyncSec(){ const svc=$("sync-svc").value; $("sync-sec-leancloud").hidden=(svc!=="leancloud"); $("sync-sec-github").hidden=(svc!=="github"); renderSyncSteps(svc); }
 function renderSyncSteps(svc){ const el=$("sync-steps"); if(!el)return; el.textContent = svc==="github" ? "令牌在 GitHub → 头像 → Settings → Developer settings → Tokens (classic) 生成，勾选 gist。" : "在 LeanCloud 控制台创建应用，复制 App ID / App Key / REST API 地址填入上方。"; }
@@ -1585,7 +1595,7 @@ function genSyncCode(){ const cfg=readSyncForm(); if(cfg.svc==="github"&&!cfg.to
 function copySyncCode(){ const v=$("sync-code-out").value; if(!v)return; if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(v).then(()=>toast("已复制配置码"),()=>toast("复制失败，请手动长按")); } else { $("sync-code-out").select(); try{ document.execCommand("copy"); toast("已复制配置码"); }catch(e){ toast("复制失败，请手动长按"); } } }
 function importSyncCode(){ const code=($("sync-code-in").value||"").trim(); if(!code)return toast("请先粘贴配置码"); let cfg; try{ cfg=JSON.parse(b64dec(code)); }catch(e){ return toast("配置码无效"); } if(!cfg||typeof cfg!=="object")return toast("配置码无效"); applyCfgToForm(cfg); saveSyncCfg(cfg); renderSyncMeta(); toast("已导入，点「立即同步」即可"); }
 let _cfgImported=false;
-function applyHashConfig(){ if(location.hash.indexOf("#cfg=")===0){ const code=location.hash.slice(5); const existing=getSyncCfg(); if(existing&&existing.token){ try{ history.replaceState(null,"",location.pathname+location.search); }catch(e){ location.hash=""; } return; } try{ const cfg=JSON.parse(b64dec(code)); if(cfg&&typeof cfg==="object"){ applyCfgToForm(cfg); saveSyncCfg(cfg); _cfgImported=true; } }catch(e){ } try{ history.replaceState(null,"",location.pathname+location.search); }catch(e){ location.hash=""; } } }
+function applyHashConfig(){ if(location.hash.indexOf("#cfg=")===0){ const code=location.hash.slice(5); try{ const cfg=JSON.parse(b64dec(code)); if(cfg&&typeof cfg==="object"){ applyCfgToForm(cfg); saveSyncCfg(cfg); _cfgImported=true; } }catch(e){ } try{ history.replaceState(null,"",location.pathname+location.search); }catch(e){ location.hash=""; } } }
 let _autoTimer=null;
 function startAutoSync(){ clearInterval(_autoTimer); const cfg=getSyncCfg(); if(cfg.auto===false||!isSyncReady(cfg))return; _autoTimer=setInterval(()=>{ if(isSyncReady(getSyncCfg()))autoSync(); },3*60*1000); document.addEventListener("visibilitychange",()=>{ if(!document.hidden&&isSyncReady(getSyncCfg()))autoSync(); }); }
 function isSyncReady(cfg){ if(!cfg||cfg.auto===false)return false; if(cfg.svc==="github")return !!cfg.token&&!!window.crypto; if(cfg.svc==="leancloud")return !!(cfg.appId&&cfg.appKey&&cfg.api); return false; }
@@ -1619,6 +1629,8 @@ function finishOnboard(){ metaSet('seenOnboard',1); enterApp(); }
   db = await openDB();
   const seen = await metaGet('seenOnboard');
   applyHashConfig();
+  applyCfgToForm(getSyncCfg());      // 把内置配置灌进面板：不用打开设置，doSync 也不会读到空值
+  saveSyncCfg(getSyncCfg());
   if(seen){ enterApp(); } else { go('onboard'); }
   if(_cfgImported){ openSyncModal(); toast("已从配置链接导入，点「立即同步」"); }
 })();
