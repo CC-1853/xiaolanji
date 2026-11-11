@@ -807,6 +807,44 @@ async function imgUrl(id){
 function blobToDataURL(blob){ return new Promise(res => { const r = new FileReader(); r.onload = () => res(r.result); r.readAsDataURL(blob); }); }
 function dataURLToBlob(u){ const [head, b64] = u.split(","); const mime = head.match(/:(.*?);/)[1]; const bin = atob(b64); return new Blob([new Uint8Array([...bin].map(c=>c.charCodeAt(0)))], {type:mime}); }
 
+/* iPhone 把实况照片交给网页时只给静帧，但 EXIF/XMP 里的配对标识常常还在。
+   读到标识就说明这确实是一张实况照片，App 自动按实况呈现，不用用户特意点哪个按钮。 */
+function hasBytes(buf, word){
+  const n=word.length, m=buf.length, c0=word.charCodeAt(0);
+  for(let i=0;i<=m-n;i++){
+    if(buf[i]!==c0) continue;
+    let ok=true;
+    for(let j=1;j<n;j++){ if(buf[i+j]!==word.charCodeAt(j)){ ok=false; break; } }
+    if(ok) return true;
+  }
+  return false;
+}
+async function isAppleLiveStill(file){
+  try{
+    const size=Math.min(file.size||0, 512*1024);
+    if(size<16) return false;
+    const b=new Uint8Array(await file.slice(0,size).arrayBuffer());
+    const jpg=b[0]===0xFF&&b[1]===0xD8;
+    const heic=b.length>12&&String.fromCharCode(b[4],b[5],b[6],b[7])==="ftyp";
+    if(!jpg&&!heic) return false;
+    const marks=["ContentIdentifier","MediaGroupUUID","com.apple.quicktime.content.identifier",
+      "livePhotoVideoIndex","apple:livePhoto","LivePhoto","live-photo",
+      "GCamera:MicroVideo","MotionPhoto_Data","GCamera:MotionPhoto"];
+    if(marks.some(w=>hasBytes(b,w))) return true;
+    // Apple MakerNote 里 0x0011 = ContentIdentifier，后面跟一串 UUID 字符
+    for(let i=2;i<b.length-40;i++){
+      if(b[i]!==0x00||b[i+1]!==0x11) continue;
+      let uuid=0;
+      for(let j=i+8;j<i+46;j++){
+        const c=b[j];
+        if((c>=48&&c<=57)||(c>=65&&c<=70)||(c>=97&&c<=102)||c===45) uuid++;
+      }
+      if(uuid>=30) return true;
+    }
+    return false;
+  }catch(e){ return false; }
+}
+
 /* 安卓/三星/华为/小米「动态照片」：一张 JPG 尾部藏着一段 MP4，纯前端把它抠出来 */
 async function extractMotionPhoto(file){
   try{
@@ -1527,7 +1565,7 @@ async function addImages(files, liveMode){
   const isImg=f=>/^image\//.test(f.type||"")||/\.(jpe?g|png|gif|webp|heic|heif|avif|bmp)$/i.test(f.name||"");
   const isVid=f=>!/^image\//.test(f.type||"")&&(/^video\//.test(f.type||"")||/\.(mov|mp4|webm|m4v|3gp)$/i.test(f.name||""));
   const imgs=files.filter(isImg), vids=files.filter(isVid);
-  let added=0, live=0, skipped=0;
+  let added=0, live=0, stillLive=0, skipped=0;
   const imgMap={}, usedStill=new Set();
   const putLive=async(stillId,vblob,vname)=>{
     const vid=uid();
@@ -1542,7 +1580,9 @@ async function addImages(files, liveMode){
     const motion=await extractMotionPhoto(f);          // 安卓动态照片：相册直选就能拿到动态
     const blob=await compressImage((motion&&motion.still)?motion.still:f);
     const rec={id,blob,name:f.name,addedAt:Date.now()};
-    if(liveMode&&!motion) rec.liveEffect=1;         // 静态实况照片：呈现 iOS 风格 LIVE 徽章，不伪造动效
+    // 相册直选的照片，只要文件里还留着实况配对标识，就自动按实况呈现，不用特意点「◉ 实况」
+    const appleLive = motion ? false : await isAppleLiveStill(f);
+    if((liveMode||appleLive)&&!motion){ rec.liveEffect=1; stillLive++; }  // 真实 LIVE 标识，不伪造动效
     await dbPut('images',rec);
     edImgIds.push(id); imgMap[stem(f.name)]=id; added++;
     if(motion) await putLive(id,motion.video,f.name.replace(/\.[^.]+$/,"")+".mp4");
@@ -1567,7 +1607,7 @@ async function addImages(files, liveMode){
     }
   }
   renderEdImgs();
-  toast(`已添加 ${added+live} 个媒体${live?`，${live} 段真实动态`:''}${skipped?`（跳过 ${skipped} 个）`:''}`);
+  toast(`已添加 ${added+live} 个媒体${live?`，${live} 段真实动态`:''}${stillLive?`，${stillLive} 张实况照片`:''}${skipped?`（跳过 ${skipped} 个）`:''}`);
 }
 async function renderEdImgs(){
   const box=$('ed-imgs'); if(!box) return; box.innerHTML='';
