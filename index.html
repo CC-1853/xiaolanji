@@ -276,7 +276,9 @@
   .ck-pagehead{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:10px;}
   .ck-pagehead h2{font-family:var(--font-serif);font-size:22px;font-weight:700;}
   .ck-pagehead span{font-size:12px;color:var(--text2);font-weight:600;}
-  .ck-group{margin-bottom:16px;}
+  .ck-group{margin-bottom:16px;border-radius:18px;}
+  .ck-group.drop-on{background:rgba(161,140,209,.10);outline:2px dashed var(--primary);outline-offset:5px;}
+  .ck-group.drop-on .ck-empty{border-color:var(--primary);color:var(--primary);font-weight:700;}
   .ck-group-head{display:flex;align-items:center;gap:7px;margin-bottom:8px;}
   .ck-group-head .cdot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
   .ck-group-head b{font-size:13px;font-weight:700;}
@@ -284,13 +286,19 @@
   .ck-item{display:flex;align-items:center;gap:9px;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:11px 10px 11px 6px;box-shadow:var(--shadow-soft);margin-bottom:8px;transition:margin .25s var(--ease),opacity .15s;}
   .ck-item[data-lv="2"]{margin-left:16px;}
   .ck-item[data-lv="3"]{margin-left:32px;}
-  .ck-item.dragging{opacity:.5;}
+  .ck-item.dragging{opacity:.55;box-shadow:0 10px 24px rgba(80,60,130,.18);}
   .ck-handle{color:var(--text2);cursor:grab;padding:2px 4px 2px 2px;font-size:15px;line-height:1;flex-shrink:0;touch-action:none;user-select:none;}
   .ck-check{width:23px;height:23px;border-radius:50%;border:1.5px solid var(--border);background:transparent;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;cursor:pointer;padding:0;transition:background-color .15s,border-color .15s;}
   .ck-item.done .ck-check{background:var(--primary);border-color:var(--primary);}
-  .ck-text{flex:1;font-size:14px;min-width:0;word-break:break-all;}
+  .ck-text{flex:1;font-size:14px;min-width:0;word-break:break-all;cursor:pointer;}
   .ck-item.done .ck-text{color:var(--text2);text-decoration:line-through;}
+  .ck-move{flex-shrink:0;border:none;background:transparent;color:var(--text2);font-size:14px;cursor:pointer;padding:4px 2px;line-height:1;opacity:.8;}
   .ck-del{flex-shrink:0;border:none;background:transparent;color:var(--text2);font-size:13px;cursor:pointer;padding:4px 2px;line-height:1;}
+  .ck-pick{display:flex;align-items:center;gap:10px;padding:14px 4px;border-bottom:1px solid var(--border);cursor:pointer;font-size:14px;font-weight:600;}
+  .ck-pick .cdot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+  .ck-pick .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .ck-pick .tick{color:var(--primary);font-size:16px;}
+  .ck-pick.on .nm{color:var(--primary);}
   .ck-lvhint{position:absolute;z-index:50;background:var(--text);color:#fff;font-size:11px;font-weight:800;border-radius:999px;padding:4px 10px;pointer-events:none;box-shadow:0 6px 14px rgba(0,0,0,0.22);letter-spacing:.5px;display:none;}
   .ck-hint{margin-top:14px;font-size:11px;color:var(--text2);text-align:center;line-height:1.6;}
   .ck-empty{border:1.5px dashed var(--border);border-radius:16px;padding:14px;text-align:center;font-size:12px;color:var(--text2);margin-bottom:8px;}
@@ -701,6 +709,20 @@
         <div class="p-info"><b>恢复默认封面</b><span>改用这一册的主题渐变色</span></div>
         <span style="color:var(--text2);">›</span>
       </div>
+    </div>
+  </div>
+
+  <!-- SHEET：把条目切换到别的分类 -->
+  <div class="modal" id="cat-sheet" onclick="closeSheet(event,'cat-sheet')">
+    <div class="modal-sheet" onclick="event.stopPropagation()">
+      <div class="modal-handle"></div>
+      <div class="sheet-title">
+        <h3>移到分类</h3>
+        <button class="icon-btn" onclick="closeSheet(null,'cat-sheet')">✕</button>
+      </div>
+      <p id="cat-sheet-sub" style="font-size:12px;color:var(--text2);margin:-4px 0 10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></p>
+      <div id="cat-sheet-list"></div>
+      <p class="ck-hint">也可以按住 ⠿，直接把条目拖到别的分类</p>
     </div>
   </div>
 
@@ -1415,6 +1437,7 @@ async function openChecklist(){
 const CAT_COLORS=['#A18CD1','#FF9A9E','#A6C1EE','#FBC2EB'];
 function renderChecklist(book){
   const ck=book.checklist||[];
+  const sel=ckSelCat||(book.cats&&book.cats[0]&&book.cats[0].id);
   const done=ck.filter(i=>i.done).length;
   const pct=ck.length?Math.round(done/ck.length*100):0;
   const tb=$('ck-topbook');
@@ -1428,17 +1451,37 @@ function renderChecklist(book){
     const color=CAT_COLORS[ci%CAT_COLORS.length];
     groups+=`<div class="ck-group" data-cat="${cat.id}"><div class="ck-group-head"><span class="cdot" style="background:${color}"></span><b>${esc(cat.name)}</b><span>${items.filter(i=>i.done).length}/${items.length}</span></div>`;
     if(items.length){
-      groups+=items.map(it=>`<div class="ck-item${it.done?" done":""}" data-id="${it.id}" data-lv="${it.lv||1}"><span class="ck-handle">⠿</span><button class="ck-check" data-act="check">✓</button><span class="ck-text">${esc(it.text)}</span><button class="ck-del" data-act="del">✕</button></div>`).join("");
+      groups+=items.map(it=>`<div class="ck-item${it.done?" done":""}" data-id="${it.id}" data-lv="${it.lv||1}"><span class="ck-handle">⠿</span><button class="ck-check" data-act="check">✓</button><span class="ck-text">${esc(it.text)}</span><button class="ck-move" data-act="move" title="切换到别的分类">⇄</button><button class="ck-del" data-act="del">✕</button></div>`).join("");
     } else {
       groups+='<div class="ck-empty">空分类，把条目拖进来，或在下方添加</div>';
     }
     groups+='</div>';
   });
-  const chips=(book.cats||[]).map(c=>`<button class="ck-catchip${c.id===ckSelCat?' on':''}" data-cat="${c.id}">${esc(c.name)}</button>`).join('');
-  $('ck-body').innerHTML=`<div class="ck-pagehead"><h2>事前准备清单</h2><span>${done}/${ck.length} 已完成</span></div><div class="ck-bar"><i style="width:${pct}%"></i></div>${groups}<div class="ck-cats" id="ck-cats">${chips}<button class="ck-catchip" id="ck-newcat">＋ 新分类</button></div><div class="ck-addbar"><input id="ck-input" type="text" maxlength="60" placeholder="要准备的一件事"><button class="ck-addbtn" id="ck-addbtn">＋</button></div><p class="ck-hint">按住 ⠿ 上下拖动换顺序，左右拖动调整阶梯层级</p>`;
+  const chips=(book.cats||[]).map(c=>`<button class="ck-catchip${c.id===sel?' on':''}" data-cat="${c.id}">${esc(c.name)}</button>`).join('');
+  $('ck-body').innerHTML=`<div class="ck-pagehead"><h2>事前准备清单</h2><span>${done}/${ck.length} 已完成</span></div><div class="ck-bar"><i style="width:${pct}%"></i></div>${groups}<div class="ck-cats" id="ck-cats">${chips}<button class="ck-catchip" id="ck-newcat">＋ 新分类</button></div><div class="ck-addbar"><input id="ck-input" type="text" maxlength="60" placeholder="要准备的一件事"><button class="ck-addbtn" id="ck-addbtn">＋</button></div><p class="ck-hint">按住 ⠿ 上下拖动换顺序、拖进别的分类换归类，左右拖动调层级；点 ⇄ 可直接切换分类</p>`;
   bindChecklist(book);
 }
-let ckSelCat=null;
+let ckSelCat=null,ckPickId=null;
+function openCatPicker(book,id){
+  const it=(book.checklist||[]).find(i=>i.id===id); if(!it)return;
+  ckPickId=id;
+  $('cat-sheet-sub').textContent='「'+(it.text||'')+'」';
+  const cats=book.cats||[];
+  const list=$('cat-sheet-list');
+  list.innerHTML=cats.map((c,i)=>`<div class="ck-pick${c.id===it.cat?' on':''}" data-cat="${c.id}"><span class="cdot" style="background:${CAT_COLORS[i%CAT_COLORS.length]}"></span><span class="nm">${esc(c.name)}</span>${c.id===it.cat?'<span class="tick">✓</span>':''}</div>`).join('')
+    +'<div class="ck-pick" data-new="1"><span class="cdot" style="background:var(--border)"></span><span class="nm" style="color:var(--primary)">＋ 新建分类并移过去</span></div>';
+  list.querySelectorAll('.ck-pick').forEach(el=>el.addEventListener('click',async()=>{
+    let cid=el.dataset.cat;
+    if(el.dataset.new){
+      const name=(window.prompt('新分类名')||'').trim(); if(!name)return;
+      const nc={id:'c'+Date.now(),name:name}; (book.cats=book.cats||[]).push(nc); cid=nc.id; ckSelCat=cid;
+    }
+    const cur=(book.checklist||[]).find(i=>i.id===ckPickId); if(!cur){closeSheet(null,'cat-sheet');return;}
+    cur.cat=cid; await persistBook(book); closeSheet(null,'cat-sheet'); renderChecklist(book);
+    toast('已移到「'+(((book.cats||[]).find(c=>c.id===cid)||{}).name||'')+'」');
+  }));
+  openSheet('cat-sheet');
+}
 function bindChecklist(book){
   const body=$('ck-body');
   function refreshCounts(){
@@ -1447,11 +1490,18 @@ function bindChecklist(book){
     const pct=st.length?Math.round(done/st.length*100):0;
     const bar=body.querySelector('.ck-bar i'); if(bar) bar.style.width=pct+'%';
     const head=body.querySelector('.ck-pagehead span'); if(head) head.textContent=done+'/'+st.length+' 已完成';
+    body.querySelectorAll('.ck-group').forEach(g=>{
+      const its=Array.from(g.querySelectorAll('.ck-item'));
+      const d=its.filter(x=>x.classList.contains('done')).length;
+      const s=g.querySelector('.ck-group-head span:last-child'); if(s)s.textContent=d+'/'+its.length;
+    });
   }
   body.querySelectorAll('.ck-item').forEach(el=>{
     const id=el.dataset.id;
     el.querySelector('[data-act="check"]').addEventListener('click',async ()=>{ const it=(book.checklist||[]).find(i=>i.id===id); if(!it)return; it.done=!it.done; el.classList.toggle('done',it.done); refreshCounts(); await persistBook(book); });
     el.querySelector('[data-act="del"]').addEventListener('click',async ()=>{ book.checklist=(book.checklist||[]).filter(i=>i.id!==id); await persistBook(book); renderChecklist(book); });
+    el.querySelector('[data-act="move"]').addEventListener('click',()=>openCatPicker(book,id));
+    el.querySelector('.ck-text').addEventListener('click',()=>openCatPicker(book,id));
   });
   body.querySelectorAll('.ck-catchip[data-cat]').forEach(el=>{
     el.addEventListener('click',()=>{ ckSelCat=el.dataset.cat; body.querySelectorAll('.ck-catchip[data-cat]').forEach(x=>x.classList.toggle('on',x===el)); });
@@ -1469,27 +1519,97 @@ function bindChecklist(book){
   async function add(){ const t=(input.value||'').trim(); if(!t)return; book.checklist=book.checklist||[]; book.checklist.push({id:'k'+Date.now(),text:t,done:false,cat:ckSelCat||(book.cats[0]&&book.cats[0].id),lv:1}); await persistBook(book); renderChecklist(book); setTimeout(()=>{const ni=$('ck-input'); if(ni)ni.focus();},0); }
   const addbtn=$('ck-addbtn'); if(addbtn) addbtn.addEventListener('click',add);
   if(input) input.addEventListener('keydown',e=>{ if(e.key==='Enter')add(); });
-  let dragEl=null,dragCtx=null;
+  let dragEl=null,dragCtx=null,scrollTimer=null;
+  const scr=$('screen-checklist');
+  const EMPTY_TXT='空分类，把条目拖进来，或在下方添加';
   const hint=document.createElement('div'); hint.className='ck-lvhint'; body.appendChild(hint);
+  function clearDrop(){
+    body.querySelectorAll('.ck-group.drop-on').forEach(g=>g.classList.remove('drop-on'));
+    body.querySelectorAll('.ck-empty').forEach(e=>e.textContent=EMPTY_TXT);
+  }
+  function markDrop(g){
+    body.querySelectorAll('.ck-group').forEach(x=>{
+      x.classList.toggle('drop-on',x===g);
+      const e=x.querySelector('.ck-empty'); if(e)e.textContent=(x===g?'松手放到这里':EMPTY_TXT);
+    });
+  }
+  function groupAt(y){
+    let best=null,d=Infinity;
+    body.querySelectorAll('.ck-group').forEach(g=>{
+      const r=g.getBoundingClientRect();
+      const dist=y<r.top?r.top-y:(y>r.bottom?y-r.bottom:0);
+      if(dist<d){d=dist;best=g;}
+    });
+    return best;
+  }
+  function placeInto(g,y){
+    if(!g||!dragEl)return;
+    markDrop(g);
+    const items=Array.from(g.querySelectorAll('.ck-item')).filter(el=>el!==dragEl);
+    let target=null,after=false;
+    for(const el of items){ const r=el.getBoundingClientRect(); if(y<r.top+r.height/2){target=el;after=false;break;} }
+    if(!target&&items.length){target=items[items.length-1];after=true;}
+    const ref=target?(after?target.nextSibling:target):(g.querySelector('.ck-empty')||null);
+    if(ref===dragEl)return;
+    if(dragEl.parentNode===g&&dragEl.nextSibling===ref)return;
+    g.insertBefore(dragEl,ref);
+  }
   body.addEventListener('pointerdown',e=>{
     const h=e.target.closest('.ck-handle'); if(!h)return;
     dragEl=h.closest('.ck-item'); const it=(book.checklist||[]).find(i=>i.id===dragEl.dataset.id);
-    dragCtx={x:e.clientX,y:e.clientY,lv:it?it.lv:1,mode:null,target:it?it.lv:1};
+    dragCtx={x:e.clientX,y:e.clientY,lv:it?(it.lv||1):1,mode:null,target:it?(it.lv||1):1,sp:0,lastY:e.clientY};
     dragEl.classList.add('dragging'); try{h.setPointerCapture(e.pointerId);}catch(err){}
   });
   body.addEventListener('pointermove',e=>{
     if(!dragEl||!dragCtx)return;
     const dx=e.clientX-dragCtx.x,dy=e.clientY-dragCtx.y;
-    if(!dragCtx.mode){ if(Math.abs(dx)>10&&Math.abs(dx)>Math.abs(dy))dragCtx.mode='lv'; else if(Math.abs(dy)>10)dragCtx.mode='sort'; }
-    if(dragCtx.mode==='lv'){ e.preventDefault(); const t=Math.max(1,Math.min(3,dragCtx.lv+Math.round(dx/36))); dragCtx.target=t; dragEl.style.marginLeft=(t*16)+'px'; hint.textContent='L'+t; hint.style.display='block'; const r=dragEl.getBoundingClientRect(),br=body.getBoundingClientRect(); hint.style.left=Math.max(0,r.left-br.left)+'px'; hint.style.top=(r.top-br.top-30)+'px'; }
-    else if(dragCtx.mode==='sort'){ e.preventDefault(); const els=Array.from(body.querySelectorAll('.ck-item')).filter(el=>el!==dragEl); for(const el of els){ const r=el.getBoundingClientRect(); if(e.clientY>=r.top&&e.clientY<=r.bottom){ const after=(e.clientY-r.top)>r.height/2; el.parentNode.insertBefore(dragEl,after?el.nextSibling:el); break; } } }
+    dragCtx.lastY=e.clientY;
+    if(!dragCtx.mode){
+      if(Math.abs(dx)>24&&Math.abs(dx)>Math.abs(dy)*1.5)dragCtx.mode='lv';
+      else if(Math.abs(dy)>8)dragCtx.mode='sort';
+      else return;
+    }
+    e.preventDefault();
+    if(dragCtx.mode==='lv'){
+      const t=Math.max(1,Math.min(3,dragCtx.lv+Math.round(dx/36))); dragCtx.target=t;
+      dragEl.style.marginLeft=((t-1)*16)+'px';
+      hint.textContent='L'+t; hint.style.display='block';
+      const r=dragEl.getBoundingClientRect(),br=body.getBoundingClientRect();
+      hint.style.left=Math.max(0,r.left-br.left)+'px'; hint.style.top=(r.top-br.top-30)+'px';
+      return;
+    }
+    const sr=scr.getBoundingClientRect(),edge=76;
+    let sp=0;
+    if(e.clientY<sr.top+edge)sp=-Math.min(20,(sr.top+edge-e.clientY)/4);
+    else if(e.clientY>sr.bottom-edge)sp=Math.min(20,(e.clientY-(sr.bottom-edge))/4);
+    dragCtx.sp=sp;
+    if(sp&&!scrollTimer)scrollTimer=setInterval(()=>{
+      if(!dragEl||!dragCtx||!dragCtx.sp)return;
+      scr.scrollTop+=dragCtx.sp; placeInto(groupAt(dragCtx.lastY),dragCtx.lastY);
+    },16);
+    placeInto(groupAt(e.clientY),e.clientY);
   });
   function endDrag(){
-    hint.style.display='none'; if(!dragEl){dragCtx=null;return;}
+    hint.style.display='none';
+    if(scrollTimer){clearInterval(scrollTimer);scrollTimer=null;}
+    clearDrop();
+    if(!dragEl){dragCtx=null;return;}
     const el=dragEl,ctx=dragCtx; dragEl=null;dragCtx=null; el.classList.remove('dragging');
-    if(!ctx||!ctx.mode){return;}
-    if(ctx.mode==='lv'){ el.style.marginLeft=''; const it=(book.checklist||[]).find(i=>i.id===el.dataset.id); if(it)it.lv=ctx.target; el.dataset.lv=ctx.target; persistBook(book).then(()=>renderChecklist(book)); return; }
-    const order=[]; body.querySelectorAll('.ck-group').forEach(g=>{ const cat=g.dataset.cat; g.querySelectorAll('.ck-item').forEach(it2=>{ const item=(book.checklist||[]).find(i=>i.id===it2.dataset.id); if(item){item.cat=cat;order.push(item);} }); });
+    if(!ctx||!ctx.mode)return;
+    if(ctx.mode==='lv'){
+      el.style.marginLeft=''; const it=(book.checklist||[]).find(i=>i.id===el.dataset.id);
+      if(it)it.lv=ctx.target; el.dataset.lv=ctx.target;
+      persistBook(book).then(()=>renderChecklist(book)); return;
+    }
+    const order=[],seen=new Set();
+    body.querySelectorAll('.ck-group').forEach(g=>{
+      const cat=g.dataset.cat;
+      g.querySelectorAll('.ck-item').forEach(el2=>{
+        const item=(book.checklist||[]).find(i=>i.id===el2.dataset.id);
+        if(item){item.cat=cat;order.push(item);seen.add(item.id);}
+      });
+    });
+    (book.checklist||[]).forEach(item=>{if(!seen.has(item.id))order.push(item);});
     book.checklist=order; persistBook(book).then(()=>renderChecklist(book));
   }
   body.addEventListener('pointerup',endDrag);
