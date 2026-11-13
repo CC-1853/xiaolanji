@@ -1,0 +1,144 @@
+import Foundation
+import WebKit
+import Photos
+import PhotosUI
+
+/// iOS 网页拿不到 Live Photo 的配对视频，只能靠原生代码从照片库里读。
+/// 这里把「静帧 + 配对 MOV」一起送回网页，网页原有的 addImages() 会按同名文件自动配成实况。
+final class LivePhotoBridge: NSObject, WKScriptMessageHandler, PHPickerViewControllerDelegate {
+
+    weak var webView: WKWebView?
+    private var callbackName: String?
+
+    // MARK: - JS -> Native
+
+    func userContentController(_ userContentController: WKUserContentController,
+                               didReceive message: WKScriptMessage) {
+        guard let body = message.body as? [String: Any],
+              body["type"] as? String == "pick" else { return }
+        callbackName = body["callback"] as? String
+        DispatchQueue.main.async { [weak self] in self?.presentPicker() }
+    }
+
+    // MARK: - 相册
+
+    private func presentPicker() {
+        guard let root = webView?.window?.rootViewController else {
+            reply(["error": "无法打开相册"])
+            return
+        }
+        let status = PHPhotoLibrary.authorizationStatus(for: .readWrite)
+        guard status == .authorized || status == .limited else {
+            PHPhotoLibrary.requestAuthorization(for: .readWrite) { [weak self] newStatus in
+                DispatchQueue.main.async {
+                    if newStatus == .authorized || newStatus == .limited {
+                        self?.presentPicker()
+                    } else {
+                        self?.reply(["error": "需要允许访问相册"])
+                    }
+                }
+            }
+            return
+        }
+
+        var config = PHPickerConfiguration(photoLibrary: .shared())
+        config.filter = .images
+        config.selectionLimit = 0
+        config.preferredAssetRepresentationMode = .current
+        let picker = PHPickerViewController(configuration: config)
+        picker.delegate = self
+        root.present(picker, animated: true)
+    }
+
+    func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
+        picker.dismiss(animated: true)
+        guard !results.isEmpty else {
+            reply(["cancelled": true])
+            return
+        }
+
+        let identifiers = results.compactMap { $0.assetIdentifier }
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            guard let self = self else { return }
+            let fetched = PHAsset.fetchAssets(withLocalIdentifiers: identifiers, options: nil)
+            var assets: [PHAsset] = []
+            fetched.enumerateObjects { asset, _, _ in assets.append(asset) }
+
+            var items: [[String: Any]] = []
+            for (index, asset) in assets.enumerated() {
+                let resources = PHAssetResource.assetResources(for: asset)
+                let isVideoName: (PHAssetResource) -> Bool = {
+                    $0.originalFilename.lowercased().hasSuffix(".mov")
+                }
+                guard let still = resources.first(where: { $0.type == .photo || $0.type == .fullSizePhoto })
+                        ?? resources.first(where: { !isVideoName($0) }),
+                      let stillData = self.read(still), !stillData.isEmpty else { continue }
+
+                let name = String(format: "XLJ_%d", index)
+                var item: [String: Any] = [
+                    "name": name,
+                    "still": stillData.base64EncodedString(),
+                    "stillType": self.mime(for: still.originalFilename, fallback: "image/jpeg")
+                ]
+
+                if let paired = resources.first(where: { $0.type == .pairedVideo || isVideoName($0) }),
+                   let videoData = self.read(paired),
+                   !videoData.isEmpty,
+                   videoData.count < 30 * 1024 * 1024 {
+                    item["video"] = videoData.base64EncodedString()
+                    item["videoType"] = "video/quicktime"
+                }
+                items.append(item)
+            }
+            self.reply(["items": items])
+        }
+    }
+
+    private func read(_ resource: PHAssetResource) -> Data? {
+        let box = Box()
+        let semaphore = DispatchSemaphore(value: 0)
+        let options = PHAssetResourceRequestOptions()
+        options.isNetworkAccessAllowed = true
+        PHAssetResourceManager.default().requestData(
+            for: resource,
+            options: options,
+            dataReceivedHandler: { data in box.data.append(data) },
+            completionHandler: { error in
+                box.error = error
+                semaphore.signal()
+            }
+        )
+        _ = semaphore.wait(timeout: .now() + 90)
+        return box.error == nil ? box.data : nil
+    }
+
+    private func mime(for filename: String, fallback: String) -> String {
+        let ext = (filename as NSString).pathExtension.lowercased()
+        switch ext {
+        case "heic", "heif": return "image/heic"
+        case "png": return "image/png"
+        case "webp": return "image/webp"
+        case "jpg", "jpeg": return "image/jpeg"
+        default: return fallback
+        }
+    }
+
+    // MARK: - Native -> JS
+
+    private func reply(_ payload: [String: Any]) {
+        guard let callback = callbackName,
+              let webView = webView,
+              let data = try? JSONSerialization.data(withJSONObject: payload, options: []),
+              let json = String(data: data, encoding: .utf8) else { return }
+        callbackName = nil
+        let script = "window['\(callback)'] && window['\(callback)'](\(json))"
+        DispatchQueue.main.async {
+            webView.evaluateJavaScript(script, completionHandler: nil)
+        }
+    }
+
+    private final class Box {
+        var data = Data()
+        var error: Error?
+    }
+}

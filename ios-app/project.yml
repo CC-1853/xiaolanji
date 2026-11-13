@@ -1,0 +1,49 @@
+name: XiaoLanJi
+options:
+  bundleIdPrefix: cn.xiaolanji
+  deploymentTarget:
+    iOS: "16.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+    TARGETED_DEVICE_FAMILY: "1"
+    CODE_SIGNING_ALLOWED: NO
+    CODE_SIGNING_REQUIRED: NO
+    CODE_SIGN_IDENTITY: ""
+targets:
+  XiaoLanJi:
+    type: application
+    platform: iOS
+    sources:
+      - path: XiaoLanJi/Sources
+    info:
+      path: XiaoLanJi/Info.plist
+      properties:
+        CFBundleDisplayName: 小懒记
+        CFBundleIdentifier: cn.xiaolanji.app
+        CFBundleName: XiaoLanJi
+        CFBundlePackageType: APPL
+        CFBundleShortVersionString: "1.0"
+        CFBundleVersion: "1"
+        LSRequiresIPhoneOS: true
+        UIRequiredDeviceCapabilities: [arm64]
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+        UIViewControllerBasedStatusBarAppearance: false
+        NSPhotoLibraryUsageDescription: 读取实况照片的配对视频，让记录在 App 里能动起来
+        NSPhotoLibraryAddUsageDescription: 把图片保存到相册
+        ITSAppUsesNonExemptEncryption: false
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: cn.xiaolanji.app
+        CODE_SIGNING_ALLOWED: NO
+schemes:
+  XiaoLanJi:
+    build:
+      targets:
+        XiaoLanJi: all
+    run:
+      config: Release
+    archive:
+      config: Release

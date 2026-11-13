@@ -532,8 +532,8 @@
     <textarea class="editor-area" id="ed-content" placeholder="今天发生了什么？&#10;像发朋友圈一样，随手记下来..."></textarea>
     <div class="ed-imgs" id="ed-imgs"></div>
     <div class="ed-tools">
-      <div class="tool-chip live" onclick="openLivePicker()">◉ 实况</div>
-      <div class="tool-chip" onclick="document.getElementById('ed-img-file').click()">📷 图片/视频</div>
+      <div class="tool-chip live" onclick="pickMedia(true)">◉ 实况</div>
+      <div class="tool-chip" onclick="pickMedia()">📷 图片/视频</div>
       <div class="tool-chip" onclick="toast('语音功能即将上线')">🎙 语音</div>
       <div class="tool-chip" onclick="toast('AI 润色即将上线')">✨ AI 润色</div>
     </div>
@@ -1185,7 +1185,15 @@ function go(id){
 }
 function openSheet(id){document.getElementById(id).classList.add('show');}
 function closeSheet(e,id){if(!e||e.target.id===id)document.getElementById(id).classList.remove('show');}
-function openLivePicker(){ $("ed-live-file").click(); }   // 一次点击直接开相册，无需任何前置步骤
+function openLivePicker(){ pickMedia(true); }   // 一次点击直接开相册，无需任何前置步骤
+/* App 内由原生相册一次取回「静帧 + 配对视频」；浏览器 / PWA 里 XLJNative 不存在，行为完全不变 */
+function pickMedia(liveMode){
+  if(window.XLJNative&&window.XLJNative.pick){
+    window.XLJNative.pick().then(files=>{ if(files&&files.length) addImages(files); }).catch(()=>{});
+    return;
+  }
+  const el=$(liveMode?"ed-live-file":"ed-img-file"); if(el) el.click();
+}
 
 /* ===== 外观（两个固定模式） ===== */
 var MODES={
@@ -1965,7 +1973,7 @@ function finishOnboard(){ metaSet('seenOnboard',1); enterApp(); }
   if(seen){ enterApp(); } else { go('onboard'); }
   if(_cfgImported){ openSyncModal(); toast("已从配置链接导入，点「立即同步」"); }
 })();
-addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(()=>{}));
+addEventListener("load",()=>{ if(navigator.serviceWorker) navigator.serviceWorker.register("./sw.js").catch(()=>{}); });
 </script>
 <div class="media-lightbox" id="media-lightbox">
   <div class="lb-topbar">
