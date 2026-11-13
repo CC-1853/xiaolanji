@@ -1,0 +1,30 @@
+name: build-ipa
+on:
+  workflow_dispatch:
+  push:
+    paths: ['ios-app/**', '.github/workflows/ios-build.yml']
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: macos-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - run: xcodebuild -version
+      - run: command -v xcodegen >/dev/null || brew install xcodegen
+      - run: xcodegen --version
+      - run: cd ios-app && xcodegen generate
+      - run: xcodebuild -project ios-app/XiaoLanJi.xcodeproj -scheme XiaoLanJi -configuration Release -sdk iphoneos -derivedDataPath ios-app/build CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" -quiet build
+      - run: cd ios-app && rm -rf Payload *.ipa && mkdir Payload && cp -R build/Build/Products/Release-iphoneos/XiaoLanJi.app Payload/ && zip -qry XiaoLanJi-unsigned.ipa Payload
+      - uses: actions/upload-artifact@v4
+        with:
+          name: XiaoLanJi-unsigned-ipa
+          path: ios-app/XiaoLanJi-unsigned.ipa
+          if-no-files-found: error
+      - name: publish
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="ipa-$(date +%Y%m%d-%H%M%S)"
+          gh release create "$TAG" ios-app/XiaoLanJi-unsigned.ipa --title "XiaoLanJi unsigned IPA" --notes "Sign with a free Apple ID via Sideloadly or AltStore."
