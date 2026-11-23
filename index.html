@@ -220,6 +220,46 @@
     color:var(--text2);font-size:13px;font-weight:600;cursor:pointer;
   }
 
+  /* ===== 攻略 ===== */
+  .gd-sub{color:var(--text2);font-size:13px;line-height:1.5;margin:-8px 0 18px;}
+  .gd-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:15px;margin-bottom:13px;cursor:pointer;box-shadow:var(--shadow-soft);}
+  .gd-card:active{opacity:.85;}
+  .gd-card-top{display:flex;gap:13px;align-items:flex-start;}
+  .gd-thumb{width:56px;height:56px;border-radius:14px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:24px;color:#fff;overflow:hidden;}
+  .gd-thumb img{width:100%;height:100%;object-fit:cover;}
+  .gd-card-main{min-width:0;flex:1;}
+  .gd-card-title{font-family:var(--font-serif);font-size:17px;font-weight:700;line-height:1.3;margin-bottom:5px;}
+  .gd-card-sum{font-size:12.5px;color:var(--text2);line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+  .gd-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;}
+  .gd-tag{font-size:11px;color:var(--primary);background:var(--primary-soft);border-radius:20px;padding:3px 10px;font-weight:600;}
+  .gd-meta{font-size:11px;color:var(--text2);margin-top:9px;}
+  .gd-empty{text-align:center;color:var(--text2);padding:60px 20px;font-size:14px;line-height:1.8;}
+  .gd-empty .em-ico{font-size:46px;display:block;margin-bottom:12px;}
+  /* 详情 */
+  .gd-hero{border-radius:var(--radius);padding:22px;color:#fff;margin-bottom:18px;box-shadow:var(--shadow-lg);position:relative;overflow:hidden;min-height:120px;display:flex;flex-direction:column;justify-content:flex-end;}
+  .gd-hero .h-emoji{font-size:34px;margin-bottom:8px;}
+  .gd-hero h1{font-family:var(--font-serif);font-size:24px;line-height:1.25;}
+  .gd-hero .h-sum{font-size:13px;opacity:.94;line-height:1.55;margin-top:8px;}
+  .gd-sec{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:16px 16px 6px;margin-bottom:14px;box-shadow:var(--shadow-soft);}
+  .gd-sec h3{font-family:var(--font-serif);font-size:16px;margin-bottom:12px;display:flex;align-items:center;gap:8px;}
+  .gd-sec h3 .n{width:22px;height:22px;border-radius:7px;background:var(--primary-soft);color:var(--primary);font-size:12px;display:flex;align-items:center;justify-content:center;font-family:var(--font);font-weight:700;}
+  .gd-step{display:flex;gap:11px;padding:9px 0;border-bottom:1px solid var(--border);align-items:flex-start;}
+  .gd-step:last-child{border-bottom:none;}
+  .gd-step .num{width:22px;height:22px;border-radius:50%;background:var(--primary);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;}
+  .gd-step .stxt{font-size:13.5px;line-height:1.6;flex:1;min-width:0;word-break:break-word;}
+  .gd-step .stxt b{display:block;font-size:14px;margin-bottom:2px;}
+  .gd-check{display:flex;gap:11px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--border);cursor:pointer;}
+  .gd-check:last-child{border-bottom:none;}
+  .gd-box{width:22px;height:22px;border-radius:7px;border:1.5px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;margin-top:1px;}
+  .gd-check.done .gd-box{background:var(--primary);border-color:var(--primary);}
+  .gd-check.done .gd-ct{color:var(--text2);text-decoration:line-through;}
+  .gd-ct{font-size:13.5px;line-height:1.55;flex:1;min-width:0;word-break:break-word;}
+  .gd-src{display:flex;gap:9px;align-items:center;padding:9px 0;border-bottom:1px solid var(--border);font-size:13px;color:var(--primary);cursor:pointer;}
+  .gd-src:last-child{border-bottom:none;}
+  .gd-src .sn{font-size:15px;}
+  .gd-src .sl{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .gd-note{font-size:11px;color:var(--text2);line-height:1.6;margin-top:4px;}
+
   /* ===== 册内：概况 / 清单 / 单页 ===== */
   .bk-topbook{display:flex;flex-direction:column;min-width:0;flex:1;padding:0 8px;}
   .bk-topbook b{font-family:var(--font-serif);font-size:16px;font-weight:700;display:block;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
@@ -518,6 +558,26 @@
     <div class="book-grid" id="shelf-grid" style="margin-top:26px;"></div>
   </section>
 
+  <!-- GUIDES：攻略列表 -->
+  <section class="screen" id="screen-guides">
+    <div class="topbar">
+      <div class="title-serif" style="font-size:26px;">攻略</div>
+      <button class="icon-btn" onclick="importGuideSheet()" title="导入攻略">＋</button>
+    </div>
+    <p class="gd-sub">把小红书的零散内容，整理成一份能照着做的攻略</p>
+    <div id="guide-list"></div>
+  </section>
+
+  <!-- GUIDE DETAIL：攻略详情 -->
+  <section class="screen" id="screen-guide-detail">
+    <div class="topbar">
+      <button class="icon-btn" onclick="go('guides')">←</button>
+      <span style="flex:1;font-size:15px;font-weight:700;color:var(--text2);" id="gd-top-title">攻略</span>
+      <button class="icon-btn" id="gd-more" onclick="guideMore()" title="更多">⋯</button>
+    </div>
+    <div id="gd-body"></div>
+  </section>
+
   <!-- EDITOR -->
   <section class="screen" id="screen-editor">
     <div class="ed-head">
@@ -775,6 +835,10 @@
     <button class="nav-item" data-target="library" onclick="go('library')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5" ry="1.5"></rect><rect x="14" y="3" width="7" height="7" rx="1.5" ry="1.5"></rect><rect x="3" y="14" width="7" height="7" rx="1.5" ry="1.5"></rect><rect x="14" y="14" width="7" height="7" rx="1.5" ry="1.5"></rect></svg>
       <span>库</span>
+    </button>
+    <button class="nav-item" data-target="guides" onclick="go('guides')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path><path d="M9 7h7M9 11h5"></path></svg>
+      <span>攻略</span>
     </button>
     <button class="nav-item" data-target="profile" onclick="go('profile')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
@@ -1169,7 +1233,7 @@ function extractTags(text){
 }
 
 /* ================= 视图切换 ================= */
-const NAV_OF={'home':'home','detail':'home','editor':'home','library':'library','book-detail':'library','checklist':'library','page':'library','report':'library','profile':'profile','onboard':'home'};
+const NAV_OF={'home':'home','detail':'home','editor':'home','library':'library','book-detail':'library','checklist':'library','page':'library','report':'library','guides':'guides','guide-detail':'guides','profile':'profile','onboard':'home'};
 function go(id){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   const scr=$('screen-'+id); if(scr) scr.classList.add('active');
@@ -1182,6 +1246,8 @@ function go(id){
   else if(id==='book-detail') renderBookDetail();
   else if(id==='checklist') renderChecklist(currentBook);
   else if(id==='report') renderReport();
+  else if(id==='guides') renderGuides();
+  else if(id==='guide-detail') renderGuideDetail();
 }
 function openSheet(id){document.getElementById(id).classList.add('show');}
 function closeSheet(e,id){if(!e||e.target.id===id)document.getElementById(id).classList.remove('show');}
@@ -1328,7 +1394,7 @@ async function renderCal(){
 function calShift(delta){ const n=new Date(calY,calM+delta,1); calY=n.getFullYear(); calM=n.getMonth(); renderCal(); }
 function pickDay(d){ toast(`查看 ${calM+1}月${d}日 的记录`); }
 async function renderShelf(){
-  const books=(await dbAll('books')).sort((a,b)=>(a.createdAt||0)-(b.createdAt||0));
+  const books=(await dbAll('books')).filter(b=>!b||b.kind!=='guide').sort((a,b)=>(a.createdAt||0)-(b.createdAt||0));
   const grid=$('shelf-grid');
   grid.innerHTML = books.map(b=>{
     const cnt=allEntries.filter(e=>e.book===b.id).length;
@@ -1786,6 +1852,128 @@ async function deleteBook(book){
   toast('已删除整册'); renderShelf(); renderCal(); go('library');
 }
 
+/* ================= 攻略 =================
+   攻略复用 books 存储（kind:'guide'），因此天然随云同步、备份、导入导出走，无需改同步逻辑。 */
+const GUIDE_ICONS=['📘','🧭','✨','🍳','🧴','✈️','🌱','🎨','💪','📷'];
+let currentGuideId=null;
+function guideGrad(g){ return (g&&g.coverImg)?'linear-gradient(155deg,#B9A7DC,#7E68B4)':themeOf(g).grad; }
+async function allGuides(){ return (await dbAll('books')).filter(b=>b&&b.kind==='guide').sort((a,b)=>(b.createdAt||0)-(a.createdAt||0)); }
+
+async function renderGuides(){
+  const list=$('guide-list'); if(!list)return;
+  const gs=await allGuides(); allGuidesCache=gs;
+  if(!gs.length){
+    list.innerHTML=`<div class="gd-empty"><span class="em-ico">🧭</span>还没有攻略<br>把小红书的内容发给我整理，<br>同步后就会出现在这里<br><span style="font-size:12px;opacity:.75;">也可以点右上角 ＋ 粘贴攻略码</span></div>`;
+    return;
+  }
+  list.innerHTML=gs.map(g=>{
+    const grad=guideGrad(g), ico=g.emoji||'📘';
+    const thumb=g.coverImg?`<img data-cover="${g.coverImg}" alt="">`:ico;
+    const steps=(g.steps||[]).length, checks=(g.checks||[]).length;
+    const tags=(g.tags||[]).slice(0,3).map(t=>`<span class="gd-tag">${esc(t)}</span>`).join('');
+    return `<div class="gd-card" data-id="${g.id}">
+      <div class="gd-card-top">
+        <div class="gd-thumb" style="background:${grad}">${thumb}</div>
+        <div class="gd-card-main">
+          <div class="gd-card-title">${esc(g.title||'未命名攻略')}</div>
+          <div class="gd-card-sum">${esc(g.summary||'')}</div>
+        </div>
+      </div>
+      ${tags?`<div class="gd-tags">${tags}</div>`:''}
+      <div class="gd-meta">${steps?(steps+' 个步骤'):''}${steps&&checks?' · ':''}${checks?(checks+' 项清单'):''}${steps||checks?' · ':''}点开查看</div>
+    </div>`;
+  }).join('');
+  for(const im of list.querySelectorAll('img[data-cover]')){ const u=await imgUrl(im.dataset.cover); if(u)im.src=u; else im.replaceWith(document.createTextNode('📘')); }
+  list.querySelectorAll('.gd-card').forEach(el=>el.onclick=()=>openGuide(el.dataset.id));
+}
+
+function openGuide(id){ currentGuideId=id; const g=allGuidesCache.find(x=>x.id===id); if(g&&$('gd-top-title')) $('gd-top-title').textContent=g.title||'攻略'; go('guide-detail'); }
+
+async function renderGuideDetail(){
+  const body=$('gd-body'); if(!body)return;
+  const gs=await allGuides(); const g=gs.find(x=>x.id===currentGuideId);
+  if(!g){ body.innerHTML='<div class="gd-empty">攻略不存在或已被删除</div>'; return; }
+  $('gd-top-title').textContent=g.title||'攻略';
+  const grad=guideGrad(g), ico=g.emoji||'📘';
+  const heroIcon=g.coverImg?``:`<div class="h-emoji">${ico}</div>`;
+  let html=`<div class="gd-hero" style="background:${grad}">${heroIcon}<h1>${esc(g.title||'未命名攻略')}</h1>${g.summary?`<div class="h-sum">${esc(g.summary)}</div>`:''}</div>`;
+
+  const steps=g.steps||[];
+  if(steps.length){
+    html+=`<div class="gd-sec"><h3><span class="n">做</span>照着做</h3>`;
+    html+=steps.map((s,i)=>`<div class="gd-step"><span class="num">${i+1}</span><div class="stxt">${s.title?`<b>${esc(s.title)}</b>`:''}${esc(s.text||'')}</div></div>`).join('');
+    html+=`</div>`;
+  }
+  const checks=g.checks||[];
+  if(checks.length){
+    const done=checks.filter(c=>c.done).length;
+    html+=`<div class="gd-sec"><h3><span class="n">✓</span>准备清单 <span style="font-size:12px;color:var(--text2);font-family:var(--font);font-weight:500;">${done}/${checks.length}</span></h3>`;
+    html+=checks.map(c=>`<div class="gd-check${c.done?' done':''}" data-cid="${c.id}"><span class="gd-box">${c.done?'✓':''}</span><span class="gd-ct">${esc(c.text)}</span></div>`).join('');
+    html+=`</div>`;
+  }
+  const srcs=g.sources||[];
+  if(srcs.length){
+    html+=`<div class="gd-sec"><h3><span class="n">源</span>原文出处</h3>`;
+    html+=srcs.map(s=>`<div class="gd-src" data-url="${esc(s.url||'')}"><span class="sn">🔗</span><span class="sl">${esc(s.title||s.url||'链接')}</span><span>›</span></div>`).join('');
+    html+=`<div class="gd-note">点开可跳转原笔记。小红书链接需在浏览器里登录后可看。</div></div>`;
+  }
+  if((g.tags||[]).length){
+    html+=`<div class="gd-tags" style="margin:2px 2px 18px;">${g.tags.map(t=>`<span class="gd-tag"># ${esc(t)}</span>`).join('')}</div>`;
+  }
+  html+=`<div class="gd-note" style="text-align:center;margin:8px 0 24px;">整理于 ${new Date(g.createdAt||Date.now()).toLocaleDateString('zh-CN')} · 勾选状态会随云同步</div>`;
+  body.innerHTML=html;
+
+  body.querySelectorAll('.gd-check').forEach(el=>el.onclick=async()=>{
+    const g2=await dbGet('books',currentGuideId); if(!g2)return;
+    const c=(g2.checks||[]).find(x=>x.id===el.dataset.cid); if(!c)return;
+    c.done=!c.done; await persistBook(g2); await renderGuideDetail();
+  });
+  body.querySelectorAll('.gd-src').forEach(el=>el.onclick=()=>{ const u=el.dataset.url; if(u) window.open(u,'_blank','noopener'); });
+}
+
+let allGuidesCache=[];
+async function refreshGuidesCache(){ allGuidesCache=await allGuides(); }
+
+async function guideMore(){
+  const g=await dbGet('books',currentGuideId); if(!g)return;
+  if(!confirm('删除这篇攻略？删除后会通过云同步在另一台设备上也移除。'))return;
+  await dbDel('books',g.id); addTombstone(g.id); toast('攻略已删除'); go('guides');
+}
+
+/* 导入攻略：粘贴一段攻略码（JSON），或接受 {"guides":[...]} 批量。由助手整理后给出。 */
+function importGuideSheet(){
+  const txt=prompt('把助手给你的「攻略码」粘贴到这里：');
+  if(!txt||!txt.trim())return;
+  let data;
+  try{ data=JSON.parse(txt.trim()); }catch(e){ return toast('攻略码格式不对，请复制完整内容'); }
+  const arr=Array.isArray(data)?data:(Array.isArray(data.guides)?data.guides:[data]);
+  if(!arr.length)return toast('没有识别到攻略内容');
+  (async()=>{
+    let n=0;
+    for(const src of arr){
+      if(!src||!src.title)continue;
+      const gid=src.id||('gd_'+uid());
+      const old=await dbGet('books',gid);
+      const now=Date.now();
+      const g={
+        id:gid, kind:'guide',
+        title:String(src.title||''),
+        summary:String(src.summary||src.verdict||''),
+        emoji:src.emoji||GUIDE_ICONS[n%GUIDE_ICONS.length],
+        theme:src.theme||['warm','blue','green','pink'][n%4],
+        coverImg:old&&old.coverImg||null,
+        steps:(src.steps||[]).map(s=>typeof s==='string'?{text:s}:{title:s.title||'',text:s.text||''}),
+        checks:(src.checks||src.checklist||[]).map(c=>typeof c==='string'?{id:uid(),text:c,done:false}:{id:c.id||uid(),text:c.text||'',done:!!c.done}),
+        sources:(src.sources||[]).map(s=>typeof s==='string'?{title:s,url:''}:{title:s.title||'',url:s.url||''}),
+        tags:(src.tags||[]).map(t=>String(t)),
+        createdAt:old&&old.createdAt||now, updatedAt:now
+      };
+      await dbPut('books',g); n++;
+    }
+    await refreshGuidesCache(); await renderGuides(); toast('已导入 '+n+' 篇攻略');
+  })();
+}
+
 /* ================= 年报 ================= */
 function fmtDot(ts){ const d=new Date(ts); return (d.getMonth()+1)+'.'+d.getDate(); }
 async function renderReport(){
@@ -1812,7 +2000,7 @@ async function renderReport(){
 /* ================= 我的页 ================= */
 async function renderProfile(){
   const entries=await dbAll('entries');
-  const books=await dbAll('books');
+  const books=(await dbAll('books')).filter(b=>!b||b.kind!=='guide');
   const words=entries.reduce((s,e)=>s+stripMd(e.content).length,0);
   const dates=entries.map(e=>e.createdAt).filter(Boolean).sort((a,b)=>a-b);
   let since="小懒记 · 把日常记成作品";
@@ -1895,7 +2083,7 @@ async function doSync(){ if(syncing)return; const cfg=readSyncForm(); saveSyncCf
   if(!cfg.gist&&!cfg.pass){ openSyncModal(); return toast("首次同步请先设置同步口令（加密用）"); }
   if(cfg.pass&&!(window.crypto&&crypto.subtle))return toast("当前环境不支持加密同步，请用 https 地址打开");
   syncing=true; const btn=$("sync-run"); btn.disabled=true; btn.textContent="同步中…";
-  try{ let remote=null; if(cfg.gist)remote=await pullRemote(cfg); const local=await gatherLocal(); const merged=mergeData(local,remote); await applyMerged(merged); await refreshFeed(); let inner=JSON.stringify(merged); let outer; if(cfg.pass){ outer=JSON.stringify({app:"xiaolanji",v:1,enc:"aes-gcm-pbkdf2",data:await encryptText(inner,cfg.pass)}); } else { outer=JSON.stringify({app:"xiaolanji",v:1,enc:"none",data:inner}); } if(outer.length>20*1024*1024)throw new Error(`同步数据 ${(outer.length/1024/1024).toFixed(1)}MB，超出单次上限 20MB（实况/视频很占空间）。请删掉几段实况，或用「导出备份」存到本地`); cfg.gist=cfg.gist?await pushRemote(cfg,outer):await createRemote(cfg,outer); cfg.last=Date.now(); saveSyncCfg(cfg); $("sync-gist").value=cfg.gist; renderSyncMeta(); const imgN=Object.keys(merged.images).length, bkN=merged.books.length; toast(`同步完成：${merged.entries.length} 篇记录 · ${imgN} 张图片 · ${bkN} 册（${(outer.length/1024/1024).toFixed(1)}MB）`); }
+  try{ let remote=null; if(cfg.gist)remote=await pullRemote(cfg); const local=await gatherLocal(); const merged=mergeData(local,remote); await applyMerged(merged); await refreshFeed(); if($('screen-guides')&&$('screen-guides').classList.contains('active')){ await renderGuides(); } else if($('screen-guide-detail')&&$('screen-guide-detail').classList.contains('active')){ await refreshGuidesCache(); await renderGuideDetail(); } let inner=JSON.stringify(merged); let outer; if(cfg.pass){ outer=JSON.stringify({app:"xiaolanji",v:1,enc:"aes-gcm-pbkdf2",data:await encryptText(inner,cfg.pass)}); } else { outer=JSON.stringify({app:"xiaolanji",v:1,enc:"none",data:inner}); } if(outer.length>20*1024*1024)throw new Error(`同步数据 ${(outer.length/1024/1024).toFixed(1)}MB，超出单次上限 20MB（实况/视频很占空间）。请删掉几段实况，或用「导出备份」存到本地`); cfg.gist=cfg.gist?await pushRemote(cfg,outer):await createRemote(cfg,outer); cfg.last=Date.now(); saveSyncCfg(cfg); $("sync-gist").value=cfg.gist; renderSyncMeta(); const imgN=Object.keys(merged.images).length, bkN=merged.books.length; toast(`同步完成：${merged.entries.length} 篇记录 · ${imgN} 张图片 · ${bkN} 册（${(outer.length/1024/1024).toFixed(1)}MB）`); }
   catch(err){ toast(err.message||"同步失败，请检查网络"); }
   finally{ syncing=false; btn.disabled=false; btn.textContent="立即同步"; }
 }
