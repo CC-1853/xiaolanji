@@ -437,6 +437,18 @@
   .modal-handle{width:48px;height:6px;background:var(--border);border-radius:999px;margin:0 auto 22px;}
   .sheet-title{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;}
   .sheet-title h3{font-family:var(--font-serif);font-size:24px;font-weight:700;}
+  /* 日期选择面板 */
+  .date-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+  .date-head b{font-size:18px;font-weight:700;}
+  .date-nav{width:38px;height:38px;border-radius:50%;background:var(--surface-warm);border:none;color:var(--text);font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+  .date-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;}
+  .date-wd{text-align:center;font-size:12px;color:var(--text2);padding:6px 0;}
+  .date-cell{aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:15px;border-radius:14px;cursor:pointer;user-select:none;}
+  .date-cell.blank{cursor:default;}
+  .date-cell.today{color:var(--primary);font-weight:700;}
+  .date-cell.sel{background:var(--primary);color:#fff;font-weight:700;}
+  .date-foot{display:flex;gap:12px;margin-top:20px;}
+  .date-foot .btn-pill{flex:1;text-align:center;padding:14px;font-size:15px;}
   .plugin-row{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border);}
   .plugin-row:last-child{border-bottom:none;}
   .plugin-row .p-ic{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;}
@@ -597,7 +609,6 @@
     </div>
     <input type="file" id="ed-img-file" accept="image/*,video/*" multiple hidden>
     <input type="file" id="ed-live-file" accept="image/*,video/*" multiple hidden>
-    <input type="date" id="ed-date-input" style="position:absolute;opacity:0;width:1px;height:1px;left:-9999px;pointer-events:none;">
   </section>
 
   <input type="file" id="cover-file" accept="image/*" hidden>
@@ -812,6 +823,27 @@
         <div class="p-ic" style="background:#FFE7EA;color:#FF9A9E;">🔒</div>
         <div class="p-info"><b>隐私锁</b><span>Face ID / 密码保护</span></div>
         <div class="toggle" onclick="this.classList.toggle('on')"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SHEET：选择日期 -->
+  <div class="modal" id="date-sheet" onclick="closeSheet(event,'date-sheet')">
+    <div class="modal-sheet" onclick="event.stopPropagation()">
+      <div class="modal-handle"></div>
+      <div class="sheet-title">
+        <h3>选择日期</h3>
+        <button class="icon-btn" onclick="closeSheet(null,'date-sheet')">✕</button>
+      </div>
+      <div class="date-head">
+        <button class="date-nav" onclick="dateShiftMonth(-1)">‹</button>
+        <b id="date-title"></b>
+        <button class="date-nav" onclick="dateShiftMonth(1)">›</button>
+      </div>
+      <div class="date-grid" id="date-grid"></div>
+      <div class="date-foot">
+        <button class="btn-pill" onclick="datePickToday()">回到今天</button>
+        <button class="btn-pill btn-pill-primary" onclick="dateConfirm()">确定</button>
       </div>
     </div>
   </div>
@@ -1726,20 +1758,47 @@ let edBook=null, edImgIds=[], edEditId=null, edPickedDate=null;
 const MAX_IMG=9;
 function fmtEdDate(d){ return `${d.getMonth()+1}月${d.getDate()}日`; }
 function todayAt(d){ const n=new Date(); n.setFullYear(d.getFullYear(),d.getMonth(),d.getDate()); return n.getTime(); }
+let dateCurYear=0, dateCurMonth=0, dateTmpDay=0;
 function pickEditorDate(){
-  const inp=$('ed-date-input'); if(!inp) return;
   const d=edPickedDate||new Date();
-  const p=n=>String(n).padStart(2,'0');
-  inp.value=`${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`;
-  inp.onchange=()=>{
-    if(!inp.value) return;
-    const [y,m,day]=inp.value.split('-').map(Number);
-    if(!y||!m||!day) return;
-    edPickedDate=new Date(y,m-1,day);
-    $('ed-date').textContent=fmtEdDate(edPickedDate);
-    inp.value='';
-  };
-  inp.click();
+  dateCurYear=d.getFullYear(); dateCurMonth=d.getMonth(); dateTmpDay=d.getDate();
+  renderDateSheet(); openSheet('date-sheet');
+}
+function dateShiftMonth(delta){
+  const keep=dateTmpDay||1;
+  dateCurMonth+=delta;
+  if(dateCurMonth<0){ dateCurMonth=11; dateCurYear--; }
+  if(dateCurMonth>11){ dateCurMonth=0; dateCurYear++; }
+  const maxDay=new Date(dateCurYear,dateCurMonth+1,0).getDate();
+  dateTmpDay=Math.min(keep,maxDay);
+  renderDateSheet();
+}
+function datePickToday(){
+  const n=new Date();
+  dateCurYear=n.getFullYear(); dateCurMonth=n.getMonth(); dateTmpDay=n.getDate();
+  renderDateSheet();
+}
+function dateConfirm(){
+  const day=dateTmpDay||1;
+  edPickedDate=new Date(dateCurYear,dateCurMonth,day);
+  $('ed-date').textContent=fmtEdDate(edPickedDate);
+  closeSheet(null,'date-sheet');
+}
+function renderDateSheet(){
+  $('date-title').textContent=`${dateCurYear}年 ${dateCurMonth+1}月`;
+  const wd=['日','一','二','三','四','五','六'];
+  const today=new Date(); const isToday=(y,m,d)=>y===today.getFullYear()&&m===today.getMonth()&&d===today.getDate();
+  const first=new Date(dateCurYear,dateCurMonth,1).getDay();
+  const days=new Date(dateCurYear,dateCurMonth+1,0).getDate();
+  let html=wd.map(w=>`<div class="date-wd">${w}</div>`).join('');
+  for(let i=0;i<first;i++) html+='<div class="date-cell blank"></div>';
+  for(let d=1;d<=days;d++){
+    const cls=['date-cell'];
+    if(isToday(dateCurYear,dateCurMonth,d)) cls.push('today');
+    if(dateTmpDay===d) cls.push('sel');
+    html+=`<div class="${cls.join(' ')}" onclick="dateTmpDay=${d};renderDateSheet()">${d}</div>`;
+  }
+  $('date-grid').innerHTML=html;
 }
 function openEditor(ctx){
   edEditId=null;
