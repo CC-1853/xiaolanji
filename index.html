@@ -2125,6 +2125,9 @@ const DEFAULT_SYNC={svc:"github",
 function getSyncCfg(){
   let c={}; try{ c=JSON.parse(localStorage.getItem("xlj.sync")||"{}")||{}; }catch{ c={}; }
   for(const k of Object.keys(DEFAULT_SYNC)) if(c[k]===undefined||c[k]==="") c[k]=DEFAULT_SYNC[k];
+  // 内置的连接参数（令牌/口令/仓库号/服务）是唯一正确来源，始终以它为准，
+  // 防止浏览器里残留的旧令牌（非空）盖过内置值导致 401。用户可改的只有 auto 开关。
+  c.svc=DEFAULT_SYNC.svc; c.token=DEFAULT_SYNC.token; c.pass=DEFAULT_SYNC.pass; c.gist=DEFAULT_SYNC.gist;
   return c;
 }
 function saveSyncCfg(cfg){ localStorage.setItem("xlj.sync",JSON.stringify(cfg)); }
@@ -2162,7 +2165,7 @@ async function doSync(){ if(syncing)return; const cfg=readSyncForm(); saveSyncCf
   catch(err){ toast(err.message||"同步失败，请检查网络"); }
   finally{ syncing=false; btn.disabled=false; btn.textContent="立即同步"; }
 }
-function readSyncForm(){ const cfg=getSyncCfg(), d=DEFAULT_SYNC; cfg.svc=$("sync-svc").value||d.svc; cfg.token=$("sync-token").value.trim()||d.token; cfg.appId=$("lc-appid").value.trim(); cfg.appKey=$("lc-appkey").value.trim(); cfg.api=$("lc-api").value.trim(); cfg.pass=$("sync-pass").value||d.pass; cfg.gist=$("sync-gist").value.trim()||d.gist; cfg.auto=$("sync-auto").checked; return cfg; }
+function readSyncForm(){ const cfg=getSyncCfg(), d=DEFAULT_SYNC; cfg.svc=$("sync-svc").value||d.svc; cfg.token=$("sync-token").value.trim()||d.token; cfg.appId=$("lc-appid").value.trim(); cfg.appKey=$("lc-appkey").value.trim(); cfg.api=$("lc-api").value.trim(); cfg.pass=$("sync-pass").value||d.pass; cfg.gist=$("sync-gist").value.trim()||d.gist; cfg.auto=$("sync-auto").checked; cfg.svc=d.svc; cfg.token=d.token; cfg.pass=d.pass; cfg.gist=d.gist; return cfg; }
 function applyCfgToForm(cfg){ $("sync-svc").value=cfg.svc||(cfg.token?"github":"leancloud"); $("sync-token").value=cfg.token||""; $("lc-appid").value=cfg.appId||""; $("lc-appkey").value=cfg.appKey||""; $("lc-api").value=cfg.api||""; $("sync-pass").value=cfg.pass||""; $("sync-gist").value=cfg.gist||""; $("sync-auto").checked=(cfg.auto!==false); toggleSyncSec(); }
 function toggleSyncSec(){ const svc=$("sync-svc").value; $("sync-sec-leancloud").hidden=(svc!=="leancloud"); $("sync-sec-github").hidden=(svc!=="github"); renderSyncSteps(svc); }
 function renderSyncSteps(svc){ const el=$("sync-steps"); if(!el)return; el.textContent = svc==="github" ? "令牌在 GitHub → 头像 → Settings → Developer settings → Tokens (classic) 生成，勾选 gist。" : "在 LeanCloud 控制台创建应用，复制 App ID / App Key / REST API 地址填入上方。"; }
