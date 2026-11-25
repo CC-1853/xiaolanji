@@ -1317,7 +1317,9 @@ async function refreshFeed(){
   renderFeed();
 }
 function xinEntries(){ return allEntries.filter(e=>!e.book); }
+let _feedGen=0;
 async function renderFeed(){
+  const gen=++_feedGen;
   const feed=$('feed'); feed.innerHTML='';
   const list=xinEntries();
   if(!list.length){
@@ -1336,7 +1338,7 @@ async function renderFeed(){
     if(imgIds.length){
       const cols=imgIds.length===2?" cols2":"";
       imgs='<div class="entry-imgs'+cols+'">';
-      for(const id of imgIds){ const m=await mediaHtml(id); imgs+='<div class="entry-img">'+(m||"")+'</div>'; }
+      for(const id of imgIds){ const m=await mediaHtml(id); if(gen!==_feedGen)return; imgs+='<div class="entry-img">'+(m||"")+'</div>'; }
       imgs+='</div>';
     }
     const text=stripMd(e.content)||"图片记录";
@@ -1354,6 +1356,7 @@ async function renderFeed(){
     const send=()=>{ const v=input.value.trim(); if(!v)return; sendComment(e.id,v,fc.querySelector('.comment-list')); input.value=''; };
     block.querySelector(".comment-input button").onclick=send;
     input.addEventListener("keydown",ev=>{ if(ev.key==='Enter') send(); });
+    if(gen!==_feedGen) return;   // 已有更新的渲染接管，丢弃这次结果，避免重复/错序
     feed.appendChild(block);
   }
 }
