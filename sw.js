@@ -1,5 +1,5 @@
 /* 小懒记 · 离线缓存 Service Worker */
-const CACHE = "xlj-cache-v27";
+const CACHE = "xlj-cache-v28";
 const ASSETS = [
   "./",
   "./index.html",
