@@ -586,19 +586,18 @@
       <button class="save" id="ed-save" onclick="saveNewEntry()">发表</button>
     </div>
     <div class="ed-chiprow">
-      <div class="chip active" id="ed-date">今天</div>
+      <div class="chip active" id="ed-date" onclick="pickEditorDate()">今天</div>
       <div class="chip" onclick="toast('在正文里用 # 打标签，会自动归类')"># 标签</div>
     </div>
     <textarea class="editor-area" id="ed-content" placeholder="今天发生了什么？&#10;像发朋友圈一样，随手记下来..."></textarea>
     <div class="ed-imgs" id="ed-imgs"></div>
     <div class="ed-tools">
-      <div class="tool-chip live" onclick="pickMedia(true)">◉ 实况</div>
       <div class="tool-chip" onclick="pickMedia()">📷 图片/视频</div>
       <div class="tool-chip" onclick="toast('语音功能即将上线')">🎙 语音</div>
-      <div class="tool-chip" onclick="toast('AI 润色即将上线')">✨ AI 润色</div>
     </div>
     <input type="file" id="ed-img-file" accept="image/*,video/*" multiple hidden>
     <input type="file" id="ed-live-file" accept="image/*,video/*" multiple hidden>
+    <input type="date" id="ed-date-input" style="position:absolute;opacity:0;width:1px;height:1px;left:-9999px;pointer-events:none;">
   </section>
 
   <input type="file" id="cover-file" accept="image/*" hidden>
@@ -793,11 +792,6 @@
       <div class="sheet-title">
         <h3>插件与功能</h3>
         <button class="icon-btn" onclick="closeSheet(null,'plugin-sheet')">✕</button>
-      </div>
-      <div class="plugin-row">
-        <div class="p-ic" style="background:#FFE7EA;color:#FF9A9E;">✨</div>
-        <div class="p-info"><b>AI 润色</b><span>一键优化表达、调整语气</span></div>
-        <div class="toggle on" onclick="this.classList.toggle('on')"></div>
       </div>
       <div class="plugin-row" onclick="closeSheet(null,'plugin-sheet');openSyncModal()" style="cursor:pointer">
         <div class="p-ic" style="background:#ECE6F8;color:#A18CD1;">☁</div>
@@ -1728,15 +1722,32 @@ function renderPage(){
 }
 
 /* ================= 编辑器（发表 / 写一章） ================= */
-let edBook=null, edImgIds=[], edEditId=null;
+let edBook=null, edImgIds=[], edEditId=null, edPickedDate=null;
 const MAX_IMG=9;
+function fmtEdDate(d){ return `${d.getMonth()+1}月${d.getDate()}日`; }
+function todayAt(d){ const n=new Date(); n.setFullYear(d.getFullYear(),d.getMonth(),d.getDate()); return n.getTime(); }
+function pickEditorDate(){
+  const inp=$('ed-date-input'); if(!inp) return;
+  const d=edPickedDate||new Date();
+  const p=n=>String(n).padStart(2,'0');
+  inp.value=`${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`;
+  inp.onchange=()=>{
+    if(!inp.value) return;
+    const [y,m,day]=inp.value.split('-').map(Number);
+    if(!y||!m||!day) return;
+    edPickedDate=new Date(y,m-1,day);
+    $('ed-date').textContent=fmtEdDate(edPickedDate);
+    inp.value='';
+  };
+  inp.click();
+}
 function openEditor(ctx){
   edEditId=null;
   edBook=(ctx&&ctx.book)||null; edImgIds=[];
   $('ed-mode').textContent = edBook ? '写一章' : '记一笔';
   $('ed-save').textContent = edBook ? '添加' : '发表';
   $('ed-content').value='';
-  const dn=new Date(); $('ed-date').textContent=`${dn.getMonth()+1}月${dn.getDate()}日`;
+  edPickedDate=new Date(); $('ed-date').textContent=fmtEdDate(edPickedDate);
   renderEdImgs();
   go('editor');
   setTimeout(()=>$('ed-content').focus(),150);
@@ -1747,7 +1758,7 @@ async function editEntry(id){
   $('ed-mode').textContent = edBook ? '编辑一章' : '编辑';
   $('ed-save').textContent = '保存';
   $('ed-content').value=e.content||'';
-  const dn=new Date(e.createdAt); $('ed-date').textContent=`${dn.getMonth()+1}月${dn.getDate()}日`;
+  edPickedDate=new Date(e.createdAt); $('ed-date').textContent=fmtEdDate(edPickedDate);
   renderEdImgs();
   go('editor');
   setTimeout(()=>$('ed-content').focus(),150);
@@ -1814,6 +1825,7 @@ async function saveNewEntry(){
     const e=allEntries.find(x=>x.id===edEditId) || await dbGet('entries',edEditId);
     if(e){
       e.content=content; e.tags=extractTags(content); e.images=[...edImgIds]; e.updatedAt=Date.now();
+      if(edPickedDate) e.createdAt=todayAt(edPickedDate);
       await dbPut('entries',e); edEditId=null;
       toast('已保存');
       if(e.book){ currentBook=await getBook(e.book); await renderBookDetail(); go('book-detail'); }
@@ -1822,7 +1834,8 @@ async function saveNewEntry(){
     }
   }
   const now=Date.now();
-  const e={id:uid(),content, tags:extractTags(content), images:[...edImgIds], comments:[], book:edBook||null, createdAt:now, updatedAt:now};
+  const createdAt=edPickedDate?todayAt(edPickedDate):now;
+  const e={id:uid(),content, tags:extractTags(content), images:[...edImgIds], comments:[], book:edBook||null, createdAt, updatedAt:now};
   await dbPut('entries',e); allEntries.push(e);
   toast(edBook?'已添加篇章':'已发表');
   if(edBook){ currentBook=await getBook(edBook); await renderBookDetail(); go('book-detail'); }
