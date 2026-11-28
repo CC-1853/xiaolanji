@@ -1,5 +1,5 @@
 /* 小懒记 · 离线缓存 Service Worker */
-const CACHE = "xlj-cache-v33";
+const CACHE = "xlj-cache-v34";
 const ASSETS = [
   "./",
   "./index.html",
@@ -32,6 +32,9 @@ self.addEventListener("activate", e => {
 self.addEventListener("fetch", e => {
   if (e.request.method !== "GET") return;
   const url = new URL(e.request.url);
+  // 云同步用的跨源 API（api.github.com / gist.githubusercontent.com）绝不能缓存。
+  // 缓存会让网页每次都读到旧的快照，导致本地旧数据反复覆盖云端新数据。
+  if (url.origin !== self.location.origin) return;
   const isHTML = e.request.mode === "navigate" || url.pathname.endsWith(".html");
   if (isHTML) {
     // 首页/页面：网络优先，保证每次都拿到最新版；离线时回退缓存
