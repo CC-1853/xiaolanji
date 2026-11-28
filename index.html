@@ -2161,11 +2161,30 @@ async function doSync(){ if(syncing)return; const cfg=readSyncForm(); saveSyncCf
   if(!cfg.gist&&!cfg.pass){ openSyncModal(); return toast("首次同步请先设置同步口令（加密用）"); }
   if(cfg.pass&&!(window.crypto&&crypto.subtle))return toast("当前环境不支持加密同步，请用 https 地址打开");
   syncing=true; const btn=$("sync-run"); btn.disabled=true; btn.textContent="同步中…";
-  try{ let remote=null; if(cfg.gist)remote=await pullRemote(cfg); const local=await gatherLocal(); let merged=mergeData(local,remote); await applyMerged(merged); await refreshFeed(); if($('screen-guides')&&$('screen-guides').classList.contains('active')){ await renderGuides(); } else if($('screen-guide-detail')&&$('screen-guide-detail').classList.contains('active')){ await refreshGuidesCache(); await renderGuideDetail(); }
-  // 推送前二次拉取+合并：若同步期间另一台设备推了新记录，先并入并集再推，
-  // 避免用本设备稍旧的快照把对方刚加的记录覆盖掉（两台设备自动同步时的 lost update）。
-  if(cfg.gist){ try{ const fr=await pullRemote(cfg); const fl=await gatherLocal(); merged=mergeData(fl,fr); await applyMerged(merged); await refreshFeed(); }catch(e){} }
-  let inner=JSON.stringify(merged); let outer; if(cfg.pass){ outer=JSON.stringify({app:"xiaolanji",v:1,enc:"aes-gcm-pbkdf2",data:await encryptText(inner,cfg.pass)}); } else { outer=JSON.stringify({app:"xiaolanji",v:1,enc:"none",data:inner}); } if(outer.length>20*1024*1024)throw new Error(`同步数据 ${(outer.length/1024/1024).toFixed(1)}MB，超出单次上限 20MB（实况/视频很占空间）。请删掉几段实况，或用「导出备份」存到本地`); cfg.gist=cfg.gist?await pushRemote(cfg,outer):await createRemote(cfg,outer); cfg.last=Date.now(); saveSyncCfg(cfg); $("sync-gist").value=cfg.gist; renderSyncMeta(); const imgN=Object.keys(merged.images).length, bkN=merged.books.length; toast(`同步完成：${merged.entries.length} 篇记录 · ${imgN} 张图片 · ${bkN} 册（${(outer.length/1024/1024).toFixed(1)}MB）`); }
+  try{ let merged=null, outer=null;
+  // 同步采用「拉取→并集合并→写本地→推送→回读验证」循环。
+  // 关键：推送后立即回读云端，若发现本次合并的某条记录被别的设备覆盖掉，
+  // 说明发生了并发写入（lost update），自动再拉再合并再推，最多 4 轮。
+  // Gist 不支持条件更新（If-Match），只能在客户端用回读验证保证最终一致。
+  for(let round=0; round<4; round++){
+    const remote=cfg.gist?await pullRemote(cfg):null;
+    const local=await gatherLocal();
+    merged=mergeData(local,remote);
+    await applyMerged(merged);
+    await refreshFeed();
+    if($('screen-guides')&&$('screen-guides').classList.contains('active')){ await renderGuides(); } else if($('screen-guide-detail')&&$('screen-guide-detail').classList.contains('active')){ await refreshGuidesCache(); await renderGuideDetail(); }
+    const inner=JSON.stringify(merged);
+    if(cfg.pass){ outer=JSON.stringify({app:"xiaolanji",v:1,enc:"aes-gcm-pbkdf2",data:await encryptText(inner,cfg.pass)}); } else { outer=JSON.stringify({app:"xiaolanji",v:1,enc:"none",data:inner}); }
+    if(outer.length>20*1024*1024)throw new Error(`同步数据 ${(outer.length/1024/1024).toFixed(1)}MB，超出单次上限 20MB（实况/视频很占空间）。请删掉几段实况，或用「导出备份」存到本地`);
+    cfg.gist=cfg.gist?await pushRemote(cfg,outer):await createRemote(cfg,outer);
+    if(!cfg.gist)break;
+    // 回读验证：本次合并的每条记录都必须仍存在于云端，否则重来
+    let verify=null; try{ verify=await pullRemote(cfg); }catch(e){ break; }
+    const allPresent=merged.entries.every(e=>(verify&&verify.entries||[]).some(ve=>ve.id===e.id));
+    const booksPresent=(merged.books||[]).every(b=>(verify&&verify.books||[]).some(vb=>vb.id===b.id));
+    if(allPresent&&booksPresent)break;
+  }
+  cfg.last=Date.now(); saveSyncCfg(cfg); $("sync-gist").value=cfg.gist; renderSyncMeta(); const imgN=Object.keys(merged.images).length, bkN=merged.books.length; toast(`同步完成：${merged.entries.length} 篇记录 · ${imgN} 张图片 · ${bkN} 册（${(outer.length/1024/1024).toFixed(1)}MB）`); }
   catch(err){ toast(err.message||"同步失败，请检查网络"); }
   finally{ syncing=false; btn.disabled=false; btn.textContent="立即同步"; }
 }
